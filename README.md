@@ -418,13 +418,6 @@ All tests passing ensures contract reliability and security.
 
 ---
 
-## 🎓 Assignment Context
-
-**Course:** MG3012 - Blockchain Technology  
-**Assignment:** #3 - Building and Deploying Smart Contracts  
-**Student:** I235010, FT-B  
-**Objective:** Develop a multi-vendor e-commerce DApp with Truffle & Ganache
-
 ### Requirements Met ✅
 - [x] Smart contract with business logic
 - [x] Truffle compilation & migration
@@ -496,10 +489,6 @@ cp build/contracts/Marketplace.json Frontend/contracts/
 - [ ] **Notifications** - Email/push for order updates
 
 ---
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
