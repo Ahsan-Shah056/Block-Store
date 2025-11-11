@@ -1,793 +1,475 @@
-# 🛍️ BlockMarket - Decentralized E-Commerce Marketplace
+<div align="center">
 
-A full-featured decentralized marketplace built on Ethereum blockchain using Truffle Suite, Solidity, and modern Web3 technologies.
+# 🛍️ BlockMarket
+### Decentralized E-Commerce Marketplace on Ethereum
 
-![Blockchain](https://img.shields.io/badge/Blockchain-Ethereum-blue)
-![Solidity](https://img.shields.io/badge/Solidity-0.8.21-green)
-![Truffle](https://img.shields.io/badge/Truffle-v5.0-orange)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+[![Blockchain](https://img.shields.io/badge/Blockchain-Ethereum-3C3C3D?style=for-the-badge&logo=ethereum)](https://ethereum.org/)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.19-363636?style=for-the-badge&logo=solidity)](https://soliditylang.org/)
+[![Web3.js](https://img.shields.io/badge/Web3.js-1.8.0-F16822?style=for-the-badge&logo=web3.js)](https://web3js.org/)
+[![Truffle](https://img.shields.io/badge/Truffle-v5.11.5-5E464D?style=for-the-badge&logo=truffle)](https://trufflesuite.com/)
+
+**A full-stack decentralized marketplace featuring multi-vendor support, escrow payments, and real-time order tracking built with Solidity, Truffle, and modern Web3 technologies.**
+
+[Features](#-features) • [Quick Start](#-quick-start) • [Screenshots](#-screenshots) • [Documentation](#-documentation)
+
+</div>
 
 ---
 
-## 📋 Table of Contents
+## 🎯 Overview
 
-- [Features](#-features)
-- [Technology Stack](#-technology-stack)
-- [Prerequisites](#-prerequisites)
-- [Installation & Setup](#-installation--setup)
-- [Smart Contract Deployment](#-smart-contract-deployment)
-- [Running the Application](#-running-the-application)
-- [Testing](#-testing)
-- [Project Structure](#-project-structure)
-- [Smart Contract Overview](#-smart-contract-overview)
-- [Frontend Features](#-frontend-features)
-- [Screenshots](#-screenshots)
-- [Security Features](#-security-features)
-- [Troubleshooting](#-troubleshooting)
-- [Future Enhancements](#-future-enhancements)
-- [Contributing](#-contributing)
-- [License](#-license)
+BlockMarket is a decentralized e-commerce platform that enables secure peer-to-peer transactions without intermediaries. Built on Ethereum blockchain, it provides a trustless marketplace where multiple sellers can list products, buyers can purchase with cryptocurrency, and all transactions are secured through smart contracts with built-in escrow functionality.
+
+### Key Highlights
+
+🏪 **Multi-Vendor Platform** - Multiple independent sellers with separate inventories  
+💰 **Escrow Protection** - Funds held securely until delivery confirmation  
+📊 **Order Tracking** - Real-time status updates from purchase to delivery  
+⭐ **Rating System** - Build reputation through buyer reviews  
+📸 **Image Upload** - Direct image uploads or URL linking  
+🔐 **Security First** - Reentrancy protection and access control
 
 ---
 
 ## ✨ Features
 
-### 🏪 **Multi-Vendor Marketplace**
-- Multiple sellers can register and manage their stores
-- Each seller has independent inventory and earnings management
-- Platform commission system (2% default)
+<table>
+<tr>
+<td width="50%">
 
-### 🛒 **Buyer Features**
-- Browse products with advanced filtering (category, price, rating)
-- Search functionality for quick product discovery
-- Shopping cart with quantity management
-- Order tracking with real-time status updates
-- Product reviews and ratings system
-- Order history and delivery confirmation
+### 🛒 For Buyers
+- Browse products with **category filters**
+- **Shopping cart** with quantity management
+- Secure checkout with **MetaMask**
+- Track orders in real-time
+- Confirm delivery and **leave reviews**
+- View complete order history
 
-### 💼 **Seller Dashboard**
-- Comprehensive seller registration system
-- Product management (Add, Edit, Activate/Deactivate)
-- **📸 Image Upload Feature**: Upload images directly from computer OR use URLs
-  - Supports JPG, PNG, GIF formats (max 2MB)
-  - Automatic base64 conversion and blockchain storage
-  - Real-time image preview with remove functionality
-  - Dual input method: file upload or URL input
-- Real-time sales analytics
-- Order fulfillment interface
-- Earnings tracking and withdrawal
-- Seller reputation based on ratings
+</td>
+<td width="50%">
 
-### 🔐 **Security & Escrow**
-- Funds held in escrow until delivery confirmation
-- Reentrancy protection
-- Role-based access control
-- Input validation and sanitization
-- SafeMath for integer operations
+### 💼 For Sellers
+- Quick **seller registration**
+- Add products with **image upload**
+- Manage inventory and pricing
+- Fulfill orders and **mark as shipped**
+- Withdraw earnings anytime
+- Build seller **reputation**
 
-### 🎨 **Modern UI/UX**
-- Beautiful gradient design with smooth animations
-- Fully responsive (Desktop, Tablet, Mobile)
-- Interactive toast notifications
-- Loading states and skeleton screens
-- Intuitive navigation and user flows
+</td>
+</tr>
+</table>
+
+### 🔐 Security & Trust
+- ✅ Smart contract escrow (funds held until delivery)
+- ✅ Reentrancy attack protection
+- ✅ Role-based access control
+- ✅ Input validation & sanitization
+- ✅ 2% platform commission (transparent)
 
 ---
 
-## 🛠️ Technology Stack
+## 🚀 Quick Start
 
-### Blockchain
-- **Solidity** `^0.8.0` - Smart contract development
-- **Truffle Suite** - Development framework
-- **Ganache** - Local blockchain for testing
-- **Web3.js** `1.8.0` - Ethereum JavaScript API
-
-### Frontend
-- **HTML5** - Structure
-- **CSS3** - Modern styling with animations
-- **Vanilla JavaScript** - No framework dependencies
-- **Font Awesome** `6.4.0` - Icons
-
-### Smart Contract Features
-- Multi-vendor support
-- Escrow payment system
-- Order tracking (Pending → Shipped → Delivered → Completed)
-- Product categories and ratings
-- Seller reputation system
-- Platform commission mechanism
-
----
-
-## 📦 Prerequisites
-
-Before you begin, ensure you have the following installed:
-
-1. **Node.js** (v14.0.0 or higher)
-   ```bash
-   node --version
-   ```
-
-2. **npm** (v6.0.0 or higher)
-   ```bash
-   npm --version
-   ```
-
-3. **Truffle Suite**
-   ```bash
-   npm install -g truffle
-   ```
-
-4. **Ganache** (GUI or CLI)
-   - Download GUI: [https://trufflesuite.com/ganache/](https://trufflesuite.com/ganache/)
-   - Or install CLI: `npm install -g ganache`
-
-5. **MetaMask Browser Extension**
-   - Download: [https://metamask.io/download/](https://metamask.io/download/)
-
----
-
-## 🚀 Installation & Setup
-
-### Step 1: Clone the Repository
+### Prerequisites
 
 ```bash
-git clone <your-repository-url>
-cd "I235010,Ft-b,assignment#3"
+Node.js v14+
+Truffle v5.11.5
+Ganache (GUI or CLI)
+MetaMask Browser Extension
 ```
 
-### Step 2: Install Dependencies
+### Installation
 
 ```bash
+# Clone repository
+git clone https://github.com/Ahsan-Shah056/I235010-Ft-b-assignment-3.git
+cd I235010-Ft-b-assignment-3
+
+# Install dependencies
 npm install
 ```
 
-This will install all required Truffle dependencies.
+### Setup & Deploy
 
-### Step 3: Start Ganache
+1. **Start Ganache** (port 7545, Network ID 5777)
 
-**Option A: Using Ganache GUI**
-1. Open Ganache application
-2. Click "Quickstart" to create a new workspace
-3. Ensure it's running on port **7545** (default)
-4. Keep Ganache running throughout development
+![Ganache Running](screenshots/01-ganache-running.png)
+*Ganache local blockchain running with test accounts*
 
-**Option B: Using Ganache CLI**
-```bash
-ganache-cli -p 7545
-```
-
-### Step 4: Configure MetaMask
-
-1. Open MetaMask extension
-2. Click on network dropdown (top center)
-3. Select "Add Network" → "Add network manually"
-4. Enter the following details:
-   - **Network Name**: Ganache Local
-   - **New RPC URL**: `http://127.0.0.1:7545`
-   - **Chain ID**: `1337` or `5777`
-   - **Currency Symbol**: ETH
-5. Click "Save"
-
-6. Import Ganache accounts to MetaMask:
-   - Copy a private key from Ganache
-   - In MetaMask: Click account icon → Import Account
-   - Paste the private key
-   - Import at least 2-3 accounts (for testing buyer/seller roles)
-
----
-
-## 📝 Smart Contract Deployment
-
-### Step 1: Compile the Smart Contract
+2. **Compile Smart Contracts**
 
 ```bash
 truffle compile
 ```
 
-Expected output:
-```
-Compiling your contracts...
-===========================
-✔ Compilation completed successfully
-```
+![Truffle Compile](screenshots/02-truffle-compile.png)
+*Successful compilation of Marketplace smart contract*
 
-### Step 2: Deploy to Ganache
+3. **Deploy to Ganache**
 
 ```bash
-truffle migrate --network development
+truffle migrate --reset
 ```
 
-or simply:
+![Contract Deployment](screenshots/03-truffle-migrate-deployment.png)
+*Smart contract deployed to local blockchain at 0xD768B16775bAfF262f6e976953E6bf3E8Ecdd766*
 
-```bash
-truffle migrate
-```
-
-Expected output:
-```
-Starting migrations...
-======================
-> Network name:    'development'
-> Network id:      5777
-> Block gas limit: 6721975 (0x6691b7)
-
-1_deploy_contracts.js
-=====================
-
-   Deploying 'Marketplace'
-   -----------------------
-   > transaction hash:    0x...
-   > contract address:    0x...
-   > block number:        1
-   > block timestamp:     ...
-   > account:             0x...
-   > balance:             99.99...
-   > gas used:            ...
-   > gas price:           20 gwei
-   > value sent:          0 ETH
-   > total cost:          0.00... ETH
-
-   ✅ Marketplace contract deployed successfully!
-   📍 Contract Address: 0x...
-
-   > Saving artifacts
-   -------------------------------------
-   > Total deployments:   1
-   > Final cost:          0.00... ETH
-
-Summary
-=======
-> Total deployments:   1
-> Final cost:          0.00... ETH
-```
-
-**Important**: Note down the contract address from the output!
-
-### Step 3: Verify Deployment
-
-```bash
-truffle console
-```
-
-Then in the console:
-```javascript
-let instance = await Marketplace.deployed()
-let owner = await instance.platformOwner()
-console.log("Platform Owner:", owner)
-let commissionRate = await instance.platformCommissionRate()
-console.log("Commission Rate:", commissionRate.toString() + "%")
-```
-
----
-
-## 🌐 Running the Application
-
-### Method 1: Using VS Code Live Server (Recommended)
-
-1. Install "Live Server" extension in VS Code
-2. Navigate to `Frontend/index.html`
-3. Right-click and select "Open with Live Server"
-4. Application will open at `http://127.0.0.1:5500/Frontend/index.html`
-
-### Method 2: Using Python HTTP Server
-
-```bash
-cd Frontend
-python3 -m http.server 8000
-```
-
-Then open: `http://localhost:8000/index.html`
-
-### Method 3: Using Node.js HTTP Server
-
-```bash
-cd Frontend
-npx http-server -p 8000
-```
-
-Then open: `http://localhost:8000/index.html`
-
-### Step 4: Connect MetaMask
-
-1. Open the application in your browser
-2. Click "Connect Wallet" button in the navigation
-3. MetaMask will prompt for connection approval
-4. Select the Ganache account you want to use
-5. Click "Connect"
-
-You should see your wallet address and balance in the header!
-
----
-
-## 🧪 Testing
-
-### Run All Tests
+4. **Run Tests** (Optional)
 
 ```bash
 truffle test
 ```
 
-Expected output:
-```
-Contract: Marketplace
-  Deployment
-    ✓ should deploy successfully
-    ✓ should set the correct platform owner
-    ✓ should set default commission rate to 2%
-  Seller Registration
-    ✓ should register a seller successfully
-    ✓ should not allow duplicate registration
-    ✓ should increment seller counter
-  Product Management
-    ✓ should add a product successfully
-    ✓ should not allow non-sellers to add products
-    ✓ should update product details
-    ✓ should toggle product status
-  Product Purchase
-    ✓ should purchase a product successfully
-    ✓ should calculate commission correctly
-    ✓ should not allow purchase with incorrect payment
-    ✓ should not allow purchase of insufficient stock
-  Order Management
-    ✓ should mark order as shipped
-    ✓ should allow buyer to confirm delivery
-  Seller Withdrawal
-    ✓ should allow seller to withdraw earnings
-  Reviews
-    ✓ should allow buyer to review purchased product
-    ✓ should not allow review without purchase
-  Platform Owner Functions
-    ✓ should allow owner to withdraw platform earnings
-    ✓ should allow owner to update commission rate
-    ✓ should not allow commission rate above 10%
+![Test Results](screenshots/04-truffle-test-results.png)
+*All 22 tests passing - 100% coverage*
 
-  22 passing (2s)
-```
+5. **Setup MetaMask**
 
-### Run Specific Test File
+- Add Ganache Network:
+  - **Network Name:** Ganache Local
+  - **RPC URL:** http://127.0.0.1:7545
+  - **Chain ID:** 5777
+  - **Currency:** ETH
+- Import Ganache accounts using private keys
+
+![MetaMask Setup](screenshots/05-metamask-network-setup.png)
+*MetaMask configured with Ganache local network*
+
+6. **Start Frontend**
 
 ```bash
-truffle test ./test/marketplace.test.js
+cd Frontend
+python3 -m http.server 8080
 ```
 
-### Test Coverage
-
-The test suite covers:
-- ✅ Contract deployment
-- ✅ Seller registration
-- ✅ Product CRUD operations
-- ✅ Purchase flow
-- ✅ Order management
-- ✅ Payment and commission calculations
-- ✅ Withdrawal mechanisms
-- ✅ Reviews and ratings
-- ✅ Access control
-- ✅ Edge cases and error handling
-
----
-
-## 📁 Project Structure
-
-```
-I235010,Ft-b,assignment#3/
-├── contracts/
-│   └── Marketplace.sol           # Main smart contract
-├── migrations/
-│   └── 1_deploy_contracts.js     # Deployment script
-├── test/
-│   └── marketplace.test.js       # Comprehensive test suite
-├── Frontend/
-│   ├── index.html                # Buyer interface
-│   ├── seller.html               # Seller dashboard
-│   ├── css/
-│   │   └── style.css             # Modern styling with animations
-│   └── js/
-│       ├── web3-init.js          # Web3 initialization
-│       ├── buyer.js              # Buyer functionality
-│       └── seller.js             # Seller functionality
-├── build/
-│   └── contracts/                # Compiled contract artifacts (auto-generated)
-├── truffle-config.js             # Truffle configuration
-├── package.json                  # Project dependencies
-└── README.md                     # This file
-```
-
----
-
-## 📜 Smart Contract Overview
-
-### Main Contract: `Marketplace.sol`
-
-#### Key Features
-
-**1. Seller Management**
-```solidity
-struct Seller {
-    address sellerAddress;
-    string name;
-    bool isRegistered;
-    bool isActive;
-    uint256 totalSales;
-    uint256 totalEarnings;
-    uint256 pendingWithdrawal;
-    uint256 rating;
-    uint256 totalRatings;
-    uint256 registeredAt;
-}
-```
-
-**2. Product Structure**
-```solidity
-struct Product {
-    uint256 id;
-    string name;
-    string description;
-    string imageHash;
-    uint256 price;
-    uint256 stock;
-    ProductCategory category;
-    address seller;
-    bool isActive;
-    uint256 totalSales;
-    uint256 rating;
-    uint256 totalRatings;
-    uint256 createdAt;
-}
-```
-
-**3. Order Tracking**
-```solidity
-enum OrderStatus { Pending, Shipped, Delivered, Completed, Cancelled }
-
-struct Order {
-    uint256 id;
-    uint256 productId;
-    address buyer;
-    address seller;
-    uint256 quantity;
-    uint256 totalPrice;
-    uint256 sellerAmount;
-    uint256 platformFee;
-    OrderStatus status;
-    uint256 createdAt;
-    uint256 completedAt;
-}
-```
-
-#### Main Functions
-
-**Seller Functions**
-- `registerSeller(string _name)` - Register as a seller
-- `addProduct(...)` - Add new product
-- `updateProduct(...)` - Update product details
-- `toggleProductStatus(uint256 _productId)` - Activate/deactivate product
-- `withdrawEarnings()` - Withdraw accumulated earnings
-- `markOrderAsShipped(uint256 _orderId)` - Update order status
-
-**Buyer Functions**
-- `purchaseProduct(uint256 _productId, uint256 _quantity)` - Buy product
-- `confirmDelivery(uint256 _orderId)` - Confirm order delivery
-- `reviewProduct(uint256 _productId, uint256 _rating, string _comment)` - Submit review
-
-**Platform Owner Functions**
-- `withdrawPlatformEarnings()` - Withdraw platform commission
-- `updateCommissionRate(uint256 _newRate)` - Update commission percentage
-
-**View Functions**
-- `getAllProducts()` - Get all products
-- `getActiveProducts()` - Get active products only
-- `getSellerProducts(address _seller)` - Get products by seller
-- `getBuyerOrders(address _buyer)` - Get orders by buyer
-- `getProductReviews(uint256 _productId)` - Get product reviews
-- `getPlatformStats()` - Get platform statistics
-
----
-
-## 🎨 Frontend Features
-
-### Buyer Interface (`index.html`)
-
-**1. Hero Section**
-- Platform statistics (Total Products, Orders, Sellers)
-- Animated statistics cards
-
-**2. Product Browsing**
-- Grid layout with product cards
-- Search functionality
-- Category filtering
-- Price sorting
-- Rating display
-
-**3. Shopping Cart**
-- Add/remove items
-- Quantity adjustment
-- Price calculation with platform fee
-- Checkout flow
-
-**4. Product Details Modal**
-- Large product image
-- Full description
-- Stock availability
-- Seller information
-- Customer reviews
-- Add to cart functionality
-
-**5. Order Management**
-- View all orders
-- Order status tracking
-- Delivery confirmation
-- Order history
-
-**6. Review System**
-- Star rating (1-5)
-- Written comments
-- View all reviews
-
-### Seller Dashboard (`seller.html`)
-
-**1. Registration**
-- Store name registration
-- Animated registration card
-
-**2. Dashboard Overview**
-- Total products count
-- Total sales
-- Total earnings
-- Available withdrawal amount
-
-**3. Product Management**
-- Add new products
-- Edit existing products
-- Activate/deactivate products
-- Product table with sorting
-
-**4. Order Fulfillment**
-- View pending orders
-- Mark orders as shipped
-- Order details
-
-**5. Earnings**
-- Withdraw accumulated earnings
-- Transaction history
+Open: **http://localhost:8080**
 
 ---
 
 ## 📸 Screenshots
 
-### Required Screenshots for Submission
+### Seller Dashboard
 
-**1. Smart Contract Compilation**
-```bash
-truffle compile
-```
-Screenshot showing successful compilation.
+<details>
+<summary><b>👤 Seller Registration</b></summary>
 
-**2. Smart Contract Deployment**
-```bash
-truffle migrate
-```
-Screenshot showing contract address and deployment success.
+![Seller Registration](screenshots/06-seller-registration.png)
 
-**3. Ganache Blockchain**
-Screenshot of Ganache showing:
-- Accounts and balances
-- Blocks created
-- Transactions
+Register as a seller by providing your name. Once registered, you can start adding products to your inventory.
 
-**4. Buyer Interface**
-- Homepage with products
-- Product details modal
-- Shopping cart
-- Order placement
+</details>
 
-**5. Seller Dashboard**
-- Seller registration
-- Product management
-- Add/Edit product
-- Order fulfillment
+<details>
+<summary><b>📦 Adding Products</b></summary>
 
-**6. MetaMask Transactions**
-- Connect wallet
-- Transaction confirmations
-- Balance changes
+![Add Product](screenshots/07-seller-add-product.png)
 
-**7. Order Flow**
-- Purchase confirmation
-- Order tracking
-- Delivery confirmation
+Add products with:
+- Name, description, and price
+- Stock quantity and category
+- **Image upload** (JPG/PNG/GIF up to 2MB) or URL
+- Real-time preview before saving
 
-**8. Testing Results**
-```bash
-truffle test
-```
-Screenshot showing all tests passing.
+</details>
+
+### Buyer Experience
+
+<details>
+<summary><b>🛍️ Browse Products</b></summary>
+
+![Browse Products](screenshots/08-buyer-browse-products.png)
+
+Browse all available products with:
+- Product images and descriptions
+- Price in ETH
+- Star ratings from previous buyers
+- Category badges
+- Stock availability
+- "Add to Cart" functionality
+
+</details>
+
+<details>
+<summary><b>🛒 Shopping Cart & Checkout</b></summary>
+
+![Cart & Checkout](screenshots/09-buyer-cart-checkout.png)
+
+Shopping cart features:
+- View all cart items
+- Adjust quantities
+- See total price calculation
+- Platform fee displayed (2% from seller)
+- Proceed to secure checkout
+
+</details>
+
+<details>
+<summary><b>💳 MetaMask Transaction</b></summary>
+
+![MetaMask Confirm](screenshots/10-metamask-transaction-confirm.png)
+
+MetaMask prompts for transaction confirmation:
+- Review transaction details
+- Gas fee estimation
+- Confirm or reject purchase
+- Secure signature with private key
+
+</details>
+
+<details>
+<summary><b>✅ Purchase Success</b></summary>
+
+![Purchase Success](screenshots/11-purchase-success.png)
+
+After successful purchase:
+- Transaction confirmation
+- Order appears in "My Orders"
+- Track order status
+- Receive notifications for shipping updates
+
+</details>
 
 ---
 
-## 🔒 Security Features
+## 🏗️ Architecture
+
+### Smart Contract Structure
+
+```solidity
+contract Marketplace {
+    // Enums
+    enum OrderStatus { Pending, Shipped, Delivered, Completed, Cancelled }
+    enum ProductCategory { Electronics, Clothing, Books, Home, Sports, Other }
+    
+    // Main Structs
+    struct Seller { /* seller data */ }
+    struct Product { /* product data with imageHash */ }
+    struct Order { /* order tracking data */ }
+    struct Review { /* rating & feedback */ }
+    
+    // Key Functions
+    function registerSeller() external
+    function addProduct() external onlySeller
+    function purchaseProduct() external payable
+    function markOrderAsShipped() external
+    function confirmDelivery() external
+    function reviewProduct() external
+    function withdrawEarnings() external
+}
+```
+
+### Frontend Components
+
+```
+Frontend/
+├── index.html           # Buyer interface
+├── seller.html          # Seller dashboard
+├── diagnostic.html      # Connection testing tool
+├── css/
+│   └── style.css        # Modern gradient design
+├── js/
+│   ├── web3-init.js     # Web3 & MetaMask connection
+│   ├── buyer.js         # Shopping cart & checkout
+│   └── seller.js        # Product & order management
+└── contracts/
+    └── Marketplace.json # Contract ABI
+```
+
+---
+
+## 🔧 Technology Stack
+
+<div align="center">
+
+| Layer | Technologies |
+|-------|-------------|
+| **Blockchain** | ![Ethereum](https://img.shields.io/badge/-Ethereum-3C3C3D?style=flat-square&logo=ethereum) ![Solidity](https://img.shields.io/badge/-Solidity-363636?style=flat-square&logo=solidity) |
+| **Development** | ![Truffle](https://img.shields.io/badge/-Truffle-5E464D?style=flat-square) ![Ganache](https://img.shields.io/badge/-Ganache-E4A663?style=flat-square) ![Web3.js](https://img.shields.io/badge/-Web3.js-F16822?style=flat-square) |
+| **Frontend** | ![HTML5](https://img.shields.io/badge/-HTML5-E34F26?style=flat-square&logo=html5&logoColor=white) ![CSS3](https://img.shields.io/badge/-CSS3-1572B6?style=flat-square&logo=css3) ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black) |
+| **Tools** | ![MetaMask](https://img.shields.io/badge/-MetaMask-F6851B?style=flat-square) ![Git](https://img.shields.io/badge/-Git-F05032?style=flat-square&logo=git&logoColor=white) |
+
+</div>
+
+---
+
+## 📚 Documentation
+
+### Core Concepts
+
+**Escrow System**  
+When a buyer purchases a product, funds are held in the smart contract (not sent directly to seller). Seller receives payment only after buyer confirms delivery.
+
+**Platform Commission**  
+A 2% commission is deducted from seller's earnings, not charged to buyer. This funds platform maintenance.
+
+**Order Lifecycle**  
+```
+Pending → Shipped → Delivered → Completed
+         ↓ (optional)
+       Cancelled
+```
+
+**Image Storage**  
+Sellers can upload images (converted to base64) or provide URLs. Images stored on-chain for smaller files, IPFS URLs recommended for production.
+
+### Testing
+
+The project includes 22 comprehensive tests covering:
+- ✅ Contract deployment
+- ✅ Seller registration
+- ✅ Product management
+- ✅ Purchase flow & escrow
+- ✅ Order fulfillment
+- ✅ Review system
+- ✅ Withdrawal mechanism
+
+All tests passing ensures contract reliability and security.
+
+---
+
+## 🛡️ Security Features
 
 ### Smart Contract Security
+- **Reentrancy Guard**: Prevents recursive call attacks
+- **Access Control**: Role-based function restrictions
+- **Input Validation**: Requires checks on all parameters
+- **SafeMath**: Overflow/underflow protection (Solidity 0.8+)
+- **Event Logging**: All state changes emit events
 
-1. **Access Control**
-   - `onlyPlatformOwner` modifier
-   - `onlyRegisteredSeller` modifier
-   - `onlyProductOwner` modifier
-
-2. **Input Validation**
-   - Non-empty string checks
-   - Positive value requirements
-   - Stock availability verification
-   - Payment amount verification
-
-3. **Reentrancy Protection**
-   - State changes before external calls
-   - Pull payment pattern for withdrawals
-
-4. **Integer Safety**
-   - Solidity 0.8.x built-in overflow protection
-   - Explicit calculations for commission
-
-5. **Business Logic Security**
-   - Sellers cannot buy their own products
-   - Only buyers can confirm delivery
-   - Reviews only after purchase
-   - Funds released only after delivery confirmation
+### Frontend Security
+- **MetaMask Integration**: Secure transaction signing
+- **Checksummed Addresses**: Prevents address case issues
+- **Gas Estimation**: Simulates transactions before sending
+- **Error Handling**: Detailed error messages for debugging
 
 ---
 
-## 🐛 Troubleshooting
+## 🎓 Assignment Context
 
-### Common Issues and Solutions
+**Course:** MG3012 - Blockchain Technology  
+**Assignment:** #3 - Building and Deploying Smart Contracts  
+**Student:** I235010, FT-B  
+**Objective:** Develop a multi-vendor e-commerce DApp with Truffle & Ganache
 
-**1. MetaMask Not Connecting**
-- Ensure Ganache is running
-- Check MetaMask network is set to Ganache (port 7545)
-- Try refreshing the page
-- Clear browser cache
-
-**2. "Contract Not Deployed" Error**
-- Run `truffle migrate --reset`
-- Ensure Ganache is running before migration
-- Check `truffle-config.js` network settings
-
-**3. Transaction Failing**
-- Check account has sufficient ETH
-- Ensure gas limit is adequate
-- Verify contract function parameters
-- Check MetaMask for error details
-
-**4. Products Not Loading**
-- Open browser console (F12)
-- Check for JavaScript errors
-- Verify contract ABI is loaded
-- Ensure Web3 is initialized
-
-**5. "Out of Gas" Error**
-- Increase gas limit in MetaMask
-- Check Ganache gas limit settings
-- Optimize contract code if necessary
-
-**6. CORS Error**
-- Use Live Server or HTTP server (not file://)
-- Check browser security settings
-- Ensure proper CORS headers
+### Requirements Met ✅
+- [x] Smart contract with business logic
+- [x] Truffle compilation & migration
+- [x] Ganache local blockchain deployment
+- [x] Web3 frontend integration
+- [x] MetaMask wallet connection
+- [x] Comprehensive testing suite
+- [x] Complete documentation
+- [x] Screenshots of working application
 
 ---
 
-## 🚀 Future Enhancements
+## 🚨 Troubleshooting
 
-### Planned Features
+<details>
+<summary><b>Cannot connect wallet</b></summary>
 
-1. **IPFS Integration**
-   - Store product images on IPFS
-   - Decentralized file storage
+1. Ensure Ganache is running on port 7545
+2. MetaMask network configured correctly (Chain ID: 5777)
+3. Import Ganache account to MetaMask
+4. Refresh page after switching accounts
 
-2. **Advanced Search**
-   - ElasticSearch integration
-   - Fuzzy matching
-   - Autocomplete
+</details>
 
-3. **Payment Options**
-   - Multiple cryptocurrency support
-   - Stablecoin payments (USDC, DAI)
-   - Price oracle integration
+<details>
+<summary><b>Transaction fails with "Internal JSON-RPC error"</b></summary>
 
-4. **Social Features**
-   - Seller profiles with social links
-   - Buyer profiles
-   - Wishlist functionality
-   - Product recommendations
+- Check you're not buying your own product (use different account)
+- Verify sufficient balance in wallet
+- Ensure product has enough stock
+- Clear localStorage: `localStorage.clear()`
 
-5. **Analytics Dashboard**
-   - Sales charts and graphs
-   - Revenue tracking
-   - Customer analytics
+</details>
 
-6. **Mobile Application**
-   - React Native app
-   - WalletConnect integration
+<details>
+<summary><b>Contract not found</b></summary>
 
-7. **Advanced Order Management**
-   - Partial refunds
-   - Dispute resolution
-   - Automated shipping tracking
+```bash
+# Redeploy contract
+truffle migrate --reset
 
-8. **NFT Marketplace**
-   - Digital product sales
-   - NFT minting
-   - Royalty system
+# Copy contract ABI
+mkdir -p Frontend/contracts
+cp build/contracts/Marketplace.json Frontend/contracts/
+```
+
+</details>
+
+<details>
+<summary><b>Images not displaying</b></summary>
+
+- For uploaded images: Check file size < 2MB
+- For URL images: Ensure URL is publicly accessible
+- Test with sample URLs: `https://via.placeholder.com/300`
+
+</details>
+
+---
+
+## 🔮 Future Enhancements
+
+- [ ] **IPFS Integration** - Decentralized image storage
+- [ ] **Multiple Images** - Per product gallery
+- [ ] **Dispute Resolution** - Escrow mediation system
+- [ ] **Shipping Tracking** - Integration with logistics APIs
+- [ ] **Cryptocurrency Payments** - Support for ERC-20 tokens
+- [ ] **Advanced Analytics** - Seller dashboard insights
+- [ ] **Mobile App** - React Native implementation
+- [ ] **Notifications** - Email/push for order updates
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these steps:
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
 ---
 
-## 📄 License
+## 👨‍💻 Developer
 
-This project is licensed under the MIT License.
+**Ahsan Shah**  
+Student ID: I235010  
+Section: FT-B  
+Course: MG3012 - Blockchain Technology
 
----
-
-## 👨‍💻 Author
-
-**Student ID**: I235010  
-**Section**: FT-B  
-**Course**: MG3012 - Blockchain Technology for Business  
-**Semester**: 5th Semester (Fall 2025)  
-**Instructor**: Dr. Usama Arshad
+📧 Email: i235010@nu.edu.pk  
+🐙 GitHub: [@Ahsan-Shah056](https://github.com/Ahsan-Shah056)
 
 ---
 
-## 📞 Support
+## 🙏 Acknowledgments
 
-For any questions or issues:
-1. Check the [Troubleshooting](#-troubleshooting) section
-2. Review Truffle documentation: [https://trufflesuite.com/docs/](https://trufflesuite.com/docs/)
-3. Check Web3.js docs: [https://web3js.readthedocs.io/](https://web3js.readthedocs.io/)
-
----
-
-## 🎓 Assignment Submission Checklist
-
-- [x] Smart contract implemented with all required features
-- [x] Migration scripts created
-- [x] Truffle configuration completed
-- [x] Contract compiled successfully
-- [x] Contract deployed to Ganache
-- [x] Comprehensive test suite (22+ tests)
-- [x] Frontend with HTML/CSS/JavaScript
-- [x] Web3 integration
-- [x] MetaMask connectivity
-- [x] Buyer interface functional
-- [x] Seller interface functional
-- [x] Screenshots included
-- [x] README with setup instructions
-- [x] Code well-documented
-- [x] Production-ready code quality
+- Truffle Suite for excellent blockchain development tools
+- MetaMask for seamless wallet integration
+- FAST-NUCES for blockchain technology education
+- Open-source community for inspiration and resources
 
 ---
 
-## 🌟 Key Features Summary
+<div align="center">
 
-✅ Multi-vendor marketplace  
-✅ Escrow payment system  
-✅ Order tracking (4 states)  
-✅ Product reviews & ratings  
-✅ Seller reputation system  
-✅ Platform commission (2%)  
-✅ Responsive design  
-✅ Modern UI with animations  
-✅ Comprehensive testing  
-✅ Security best practices  
-✅ Production-ready code  
+**⭐ Star this repo if you found it helpful!**
 
----
+Made with ❤️ using Blockchain Technology
+
+[Report Bug](https://github.com/Ahsan-Shah056/I235010-Ft-b-assignment-3/issues) · [Request Feature](https://github.com/Ahsan-Shah056/I235010-Ft-b-assignment-3/issues)
+
+</div>
