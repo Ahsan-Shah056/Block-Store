@@ -35,47 +35,51 @@ BlockMarket is a decentralized e-commerce platform that enables secure peer-to-p
 
 <div align="center">
 
-### 🖥️ Seller Dashboard
+### � Buyer Interface
 
 <table>
 <tr>
 <td width="50%">
-<img src="screenshots/06-seller-registration.png" alt="Seller Registration" width="100%"/>
-<p><b>Seller Registration</b><br/>Simple registration form to become a seller</p>
+<img src="screenshots/08-buyer-homepage.png" alt="Buyer Homepage" width="100%"/>
+<p><b>Buyer Homepage</b><br/>Main marketplace interface with stats and search</p>
 </td>
 <td width="50%">
-<img src="screenshots/07-seller-add-product.png" alt="Add Product" width="100%"/>
-<p><b>Add Product Interface</b><br/>Upload images, set prices, manage inventory</p>
+<img src="screenshots/09-metamask-wallet-popup.png" alt="MetaMask Wallet" width="100%"/>
+<p><b>MetaMask Integration</b><br/>Secure wallet connection and account management</p>
 </td>
 </tr>
 </table>
 
-### 🛒 Buyer Interface
+### � Seller Dashboard
 
 <table>
 <tr>
 <td width="50%">
-<img src="screenshots/08-buyer-browse-products.png" alt="Browse Products" width="100%"/>
-<p><b>Product Marketplace</b><br/>Browse products with filters, ratings, and categories</p>
+<img src="screenshots/10-seller-dashboard.png" alt="Seller Dashboard" width="100%"/>
+<p><b>Seller Dashboard</b><br/>Manage products, sales, earnings, and orders</p>
 </td>
 <td width="50%">
-<img src="screenshots/09-buyer-cart-checkout.png" alt="Shopping Cart" width="100%"/>
-<p><b>Shopping Cart & Checkout</b><br/>Review cart items and proceed to checkout</p>
+<img src="screenshots/11-add-product-modal.png" alt="Add Product Modal" width="100%"/>
+<p><b>Add New Product</b><br/>Create products with images, pricing, and inventory</p>
 </td>
 </tr>
 </table>
 
-### 💳 Transaction Flow
+### � Blockchain Verification
 
 <table>
 <tr>
-<td width="50%">
-<img src="screenshots/10-metamask-transaction-confirm.png" alt="MetaMask Transaction" width="100%"/>
-<p><b>MetaMask Confirmation</b><br/>Secure transaction signing with MetaMask</p>
+<td width="33%">
+<img src="screenshots/05-ganache-blocks.png" alt="Ganache Blocks" width="100%"/>
+<p><b>Blocks View</b><br/>Mined blocks on blockchain</p>
 </td>
-<td width="50%">
-<img src="screenshots/11-purchase-success.png" alt="Purchase Success" width="100%"/>
-<p><b>Purchase Complete</b><br/>Order confirmation and tracking</p>
+<td width="33%">
+<img src="screenshots/06-ganache-transactions.png" alt="Transactions" width="100%"/>
+<p><b>Transactions</b><br/>All blockchain interactions</p>
+</td>
+<td width="33%">
+<img src="screenshots/07-ganache-transaction-detail.png" alt="Transaction Detail" width="100%"/>
+<p><b>TX Details</b><br/>Individual transaction info</p>
 </td>
 </tr>
 </table>
@@ -178,19 +182,27 @@ truffle test
 ![Test Results](screenshots/04-truffle-test-results.png)
 *All 22 tests passing - 100% coverage*
 
-5. **Setup MetaMask**
+5. **Verify Blockchain Status**
+
+![Ganache Blocks](screenshots/05-ganache-blocks.png)
+*Ganache showing mined blocks after deployment*
+
+![Ganache Transactions](screenshots/06-ganache-transactions.png)
+*Transaction history showing contract deployment and interactions*
+
+![Transaction Details](screenshots/07-ganache-transaction-detail.png)
+*Detailed view of a transaction on the blockchain*
+
+6. **Setup MetaMask**
 
 - Add Ganache Network:
   - **Network Name:** Ganache Local
   - **RPC URL:** http://127.0.0.1:7545
-  - **Chain ID:** 5777
+  - **Chain ID:** 1337
   - **Currency:** ETH
 - Import Ganache accounts using private keys
 
-![MetaMask Setup](screenshots/05-metamask-network-setup.png)
-*MetaMask configured with Ganache local network*
-
-6. **Start Frontend**
+7. **Start Frontend**
 
 ```bash
 cd Frontend
@@ -203,58 +215,65 @@ Open: **http://localhost:8080**
 
 ## 📸 Screenshots
 
+### Buyer Interface
+
+<details>
+<summary><b>🏠 Buyer Homepage</b></summary>
+
+![Buyer Homepage](screenshots/08-buyer-homepage.png)
+
+Main buyer interface showing:
+- Platform statistics (Products, Orders, Sellers)
+- Contract address and balance
+- Search and filter options
+- Category and sorting controls
+- Shopping cart access
+
+</details>
+
+<details>
+<summary><b>� MetaMask Wallet</b></summary>
+
+![MetaMask Wallet](screenshots/09-metamask-wallet-popup.png)
+
+MetaMask wallet popup showing:
+- Current account and balance
+- Network selection (Ganache Local)
+- Transaction options (Buy, Swap, Send, Receive)
+- Token and NFT management
+
+</details>
+
 ### Seller Dashboard
 
 <details>
-<summary><b>👤 Seller Registration</b></summary>
+<summary><b>� Seller Dashboard Overview</b></summary>
 
-![Seller Registration](screenshots/06-seller-registration.png)
+![Seller Dashboard](screenshots/10-seller-dashboard.png)
 
-Register as a seller by providing your name. Once registered, you can start adding products to your inventory.
-
-</details>
-
-<details>
-<summary><b>📦 Adding Products</b></summary>
-
-![Add Product](screenshots/07-seller-add-product.png)
-
-Add products with:
-- Name, description, and price
-- Stock quantity and category
-- **Image upload** (JPG/PNG/GIF up to 2MB) or URL
-- Real-time preview before saving
-
-</details>
-
-### Buyer Experience
-
-<details>
-<summary><b>🛍️ Browse Products</b></summary>
-
-![Browse Products](screenshots/08-buyer-browse-products.png)
-
-Browse all available products with:
-- Product images and descriptions
-- Price in ETH
-- Star ratings from previous buyers
-- Category badges
-- Stock availability
-- "Add to Cart" functionality
+Seller management interface featuring:
+- Total products and sales statistics
+- Earnings tracker (ETH)
+- Withdraw funds functionality
+- My Products section
+- Orders to Ship management
 
 </details>
 
 <details>
-<summary><b>🛒 Shopping Cart & Checkout</b></summary>
+<summary><b>� Add New Product</b></summary>
 
-![Cart & Checkout](screenshots/09-buyer-cart-checkout.png)
+![Add Product Modal](screenshots/11-add-product-modal.png)
 
-Shopping cart features:
-- View all cart items
-- Adjust quantities
-- See total price calculation
-- Platform fee displayed (2% from seller)
-- Proceed to secure checkout
+Product creation modal with:
+- Product name and description fields
+- Category selection dropdown
+- Price in ETH input
+- Stock quantity management
+- **Image upload** (JPG/PNG/GIF up to 2MB) or URL option
+- Real-time form validation
+
+</details>
 
 </details>
 
