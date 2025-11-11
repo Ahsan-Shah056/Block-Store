@@ -791,7 +791,3 @@ For any questions or issues:
 ✅ Production-ready code  
 
 ---
-
-**Built with ❤️ using Blockchain Technology**
-
-*Empowering decentralized commerce for a better future.*

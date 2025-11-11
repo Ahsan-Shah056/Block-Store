@@ -519,6 +519,30 @@ async function checkout() {
         showLoading('Processing checkout...');
         
         console.log('🛒 Starting checkout with cart:', cart);
+        console.log('👤 Current account:', currentAccount);
+        console.log('📍 Contract address:', contract._address);
+        
+        // Verify connection and get fresh account
+        const accounts = await web3.eth.getAccounts();
+        console.log('🔍 All available accounts:', accounts);
+        
+        if (accounts.length === 0) {
+            throw new Error('No accounts found. Please unlock MetaMask.');
+        }
+        
+        // Always use the checksummed address from getAccounts
+        // Compare using lowercase to avoid case mismatch issues
+        if (accounts[0].toLowerCase() !== currentAccount.toLowerCase()) {
+            console.warn('⚠️ Account mismatch! Updating to:', accounts[0]);
+        }
+        
+        // Use the checksummed address for the transaction
+        currentAccount = web3.utils.toChecksumAddress(accounts[0]);
+        console.log('📝 Using checksummed address:', currentAccount);
+        
+        // Check balance
+        const balance = await web3.eth.getBalance(currentAccount);
+        console.log('💰 Account balance:', web3.utils.fromWei(balance, 'ether'), 'ETH');
         
         // Process each item in cart
         for (const item of cart) {
@@ -534,40 +558,147 @@ async function checkout() {
             console.log('📝 Calling purchaseProduct with:', {
                 productId: item.id,
                 quantity: item.quantity,
-                value: totalPrice.toString()
+                value: totalPrice.toString(),
+                from: currentAccount
             });
             
+            // First, let's verify the product details from the contract
             try {
+                const product = await contract.methods.products(item.id).call();
+                console.log('📦 Product details from contract:', {
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    stock: product.stock,
+                    seller: product.seller,
+                    isActive: product.isActive
+                });
+                
+                // Check if trying to buy own product
+                if (product.seller.toLowerCase() === currentAccount.toLowerCase()) {
+                    throw new Error('⚠️ You cannot buy your own products! Current account: ' + currentAccount + ' is the seller of this product.');
+                }
+                
+                // Check if product is active
+                if (!product.isActive) {
+                    throw new Error('Product is not active');
+                }
+                
+                // Check stock
+                if (parseInt(product.stock) < item.quantity) {
+                    throw new Error(`Not enough stock. Available: ${product.stock}, Requested: ${item.quantity}`);
+                }
+                
+                // Verify price matches
+                if (product.price !== item.price) {
+                    console.warn('⚠️ Price mismatch! Cart:', item.price, 'Contract:', product.price);
+                    // Update with contract price
+                    const correctPrice = web3.utils.toBN(product.price);
+                    const correctTotal = correctPrice.mul(quantity);
+                    console.log('🔄 Using correct price:', correctTotal.toString(), 'wei');
+                    
+                    const receipt = await contract.methods.purchaseProduct(item.id, item.quantity)
+                        .send({ 
+                            from: currentAccount,
+                            value: correctTotal.toString(),
+                            gas: 300000
+                        });
+                    console.log('✅ Purchase successful for item', item.id, '- Receipt:', receipt);
+                    return;
+                }
+                
+            } catch (verifyError) {
+                console.error('❌ Pre-purchase verification failed:', verifyError);
+                throw verifyError;
+            }
+            
+            // First, try to estimate gas and catch any revert errors
+            console.log('🧪 Testing transaction with estimateGas...');
+            let gasEstimate;
+            try {
+                gasEstimate = await contract.methods.purchaseProduct(item.id, item.quantity)
+                    .estimateGas({
+                        from: currentAccount,
+                        value: totalPrice.toString()
+                    });
+                console.log('✅ Gas estimate:', gasEstimate);
+            } catch (estimateError) {
+                console.error('❌ Gas estimation failed (transaction would revert):', estimateError);
+                throw new Error('Transaction simulation failed: ' + (estimateError.message || 'Unknown reason'));
+            }
+            
+            try {
+                console.log('📤 Sending transaction...');
+                console.log('Transaction params:', {
+                    from: currentAccount,
+                    value: totalPrice.toString(),
+                    gas: Math.ceil(gasEstimate * 1.5) // Add 50% buffer to estimated gas
+                });
+                
                 const receipt = await contract.methods.purchaseProduct(item.id, item.quantity)
                     .send({ 
                         from: currentAccount,
                         value: totalPrice.toString(),
-                        gas: 300000
+                        gas: Math.ceil(gasEstimate * 1.5) // Use estimated gas + 50% buffer
                     });
                     
                 console.log('✅ Purchase successful for item', item.id, '- Receipt:', receipt);
             } catch (itemError) {
                 console.error('❌ Error purchasing item:', item.id, itemError);
+                console.error('Full error object:', JSON.stringify(itemError, null, 2));
+                
+                // Try to extract revert reason
+                let revertReason = 'Unknown error';
+                
+                if (itemError.message) {
+                    console.log('Error message:', itemError.message);
+                    revertReason = itemError.message;
+                }
+                
+                if (itemError.data && itemError.data.message) {
+                    console.log('Error data message:', itemError.data.message);
+                    revertReason = itemError.data.message;
+                }
+                
+                // Try to decode revert reason from data
+                if (itemError.data && typeof itemError.data === 'string') {
+                    try {
+                        // Remove '0x' and 'Reverted ' prefix if present
+                        let errorData = itemError.data.replace('0x', '').replace('Reverted ', '');
+                        console.log('Error data (hex):', errorData);
+                        
+                        // Try to decode as string
+                        if (errorData.length > 8) {
+                            const reason = web3.utils.hexToAscii('0x' + errorData);
+                            console.log('Decoded revert reason:', reason);
+                            revertReason = reason;
+                        }
+                    } catch (decodeError) {
+                        console.log('Could not decode error data:', decodeError);
+                    }
+                }
                 
                 // Show more specific error
                 let errorMessage = 'Purchase failed';
-                if (itemError.message) {
-                    if (itemError.message.includes('insufficient funds')) {
-                        errorMessage = 'Insufficient funds in your wallet';
-                    } else if (itemError.message.includes('Not enough stock') || itemError.message.includes('Insufficient stock')) {
-                        errorMessage = `Not enough stock for ${item.name}`;
-                    } else if (itemError.message.includes('Product not active') || itemError.message.includes('not available')) {
-                        errorMessage = `${item.name} is no longer available`;
-                    } else if (itemError.message.includes('Sellers cannot buy their own products')) {
-                        errorMessage = '⚠️ You cannot buy your own products! Please switch to a different MetaMask account to make purchases.';
-                    } else if (itemError.message.includes('user rejected')) {
-                        errorMessage = 'Transaction rejected';
-                    } else if (itemError.message.includes('Incorrect payment amount')) {
-                        errorMessage = 'Payment amount mismatch. Please try again.';
-                    } else {
-                        errorMessage = itemError.message.substring(0, 100);
-                    }
+                if (revertReason.includes('insufficient funds')) {
+                    errorMessage = 'Insufficient funds in your wallet';
+                } else if (revertReason.includes('Not enough stock') || revertReason.includes('Insufficient stock')) {
+                    errorMessage = `Not enough stock for ${item.name}`;
+                } else if (revertReason.includes('Product not active') || revertReason.includes('not available')) {
+                    errorMessage = `${item.name} is no longer available`;
+                } else if (revertReason.includes('Sellers cannot buy their own products') || revertReason.includes('own products')) {
+                    errorMessage = '⚠️ You cannot buy your own products! Current account: ' + currentAccount;
+                } else if (revertReason.includes('user rejected') || revertReason.includes('User denied')) {
+                    errorMessage = 'Transaction rejected by user';
+                } else if (revertReason.includes('Incorrect payment amount')) {
+                    errorMessage = 'Payment amount mismatch. Please try again.';
+                } else if (revertReason.includes('execution reverted')) {
+                    errorMessage = 'Transaction reverted: ' + revertReason.substring(revertReason.indexOf(':') + 1).trim();
+                } else {
+                    errorMessage = revertReason.substring(0, 150);
                 }
+                
+                console.log('📢 User-friendly error:', errorMessage);
                 
                 hideLoading();
                 showToast(errorMessage, 'error');

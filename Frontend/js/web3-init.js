@@ -121,9 +121,17 @@ async function connectWallet() {
         console.log('🔗 Current Chain ID:', chainId);
         
         // Ganache default is 1337 (0x539) or 5777 (0x1691)
-        const expectedChainIds = [1337, 5777];
+        // Also check the network ID to be more flexible
+        const networkId = await web3.eth.net.getId();
+        console.log('🌐 Network ID:', networkId);
         
-        if (!expectedChainIds.includes(Number(chainId))) {
+        const expectedChainIds = [1337, 5777];
+        const expectedNetworkIds = [1337, 5777];
+        
+        const chainIdOk = expectedChainIds.includes(Number(chainId));
+        const networkIdOk = expectedNetworkIds.includes(Number(networkId));
+        
+        if (!chainIdOk && !networkIdOk) {
             const shouldSwitch = confirm(
                 `⚠️ Wrong Network!\n\n` +
                 `You're connected to Chain ID: ${chainId}\n` +
@@ -167,13 +175,24 @@ async function connectWallet() {
         
         console.log('📡 Requesting account access...');
         
-        // Request account access
+        // Clear any cached account first
+        currentAccount = null;
+        
+        // Request account access - this will prompt MetaMask
         const accounts = await window.ethereum.request({ 
             method: 'eth_requestAccounts' 
         });
         
+        if (!accounts || accounts.length === 0) {
+            throw new Error('No accounts found. Please unlock MetaMask.');
+        }
+        
         console.log('✅ Account access granted:', accounts[0]);
-        currentAccount = accounts[0];
+        console.log('📋 Available accounts:', accounts);
+        
+        // Always use checksummed address to avoid case mismatch issues
+        currentAccount = web3.utils.toChecksumAddress(accounts[0]);
+        console.log('📝 Using checksummed address:', currentAccount);
         
         console.log('🔄 Initializing contract...');
         
@@ -186,10 +205,15 @@ async function connectWallet() {
         
         console.log('✅ Contract initialized successfully');
         
+        // Save connected account to localStorage for future reference
+        localStorage.setItem('lastConnectedAccount', currentAccount);
+        
         // Update UI
         updateWalletUI();
         
-        // Listen for account changes
+        // Listen for account changes (remove old listeners first to avoid duplicates)
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
         window.ethereum.on('accountsChanged', handleAccountsChanged);
         window.ethereum.on('chainChanged', handleChainChanged);
         
@@ -231,6 +255,20 @@ async function updateWalletUI() {
         connectBtn.innerHTML = '<i class="fas fa-check-circle"></i> Connected';
         connectBtn.disabled = true;
         connectBtn.style.background = 'var(--success)';
+        
+        // Trigger page-specific actions after wallet connection
+        if (typeof loadProducts === 'function') {
+            // Buyer page - load products and stats
+            console.log('📦 Loading products after wallet connection...');
+            await loadPlatformStats();
+            await loadProducts();
+        }
+        
+        if (typeof checkSellerStatus === 'function') {
+            // Seller page - check seller status
+            console.log('👤 Checking seller status after wallet connection...');
+            await checkSellerStatus();
+        }
     }
 }
 
@@ -238,12 +276,19 @@ async function updateWalletUI() {
  * Handle account change
  */
 function handleAccountsChanged(accounts) {
+    console.log('🔄 Account changed detected:', accounts);
+    
     if (accounts.length === 0) {
-        showToast('Please connect to MetaMask.', 'error');
-        location.reload();
+        // User disconnected all accounts
+        console.log('❌ No accounts connected');
+        currentAccount = null;
+        showToast('Wallet disconnected. Please reconnect.', 'error');
+        setTimeout(() => location.reload(), 1500);
     } else if (accounts[0] !== currentAccount) {
+        // User switched to a different account
+        console.log('🔄 Switching from', currentAccount, 'to', accounts[0]);
         currentAccount = accounts[0];
-        showToast('Account changed. Reloading...', 'success');
+        showToast(`Switched to account ${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}. Reloading...`, 'info');
         setTimeout(() => location.reload(), 1500);
     }
 }
@@ -252,8 +297,42 @@ function handleAccountsChanged(accounts) {
  * Handle chain change
  */
 function handleChainChanged() {
-    showToast('Network changed. Reloading...', 'success');
+    console.log('🌐 Network changed detected');
+    showToast('Network changed. Reloading...', 'info');
     setTimeout(() => location.reload(), 1500);
+}
+
+/**
+ * Disconnect wallet and reload
+ */
+function disconnectWallet() {
+    console.log('👋 Disconnecting wallet...');
+    currentAccount = null;
+    web3 = null;
+    contract = null;
+    
+    // Clear cached account
+    localStorage.removeItem('lastConnectedAccount');
+    
+    showToast('Wallet disconnected. Refreshing page...', 'info');
+    setTimeout(() => location.reload(), 1000);
+}
+
+/**
+ * Get current selected account from MetaMask (not cached)
+ */
+async function getCurrentAccount() {
+    if (typeof window.ethereum === 'undefined') {
+        return null;
+    }
+    
+    try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        return accounts.length > 0 ? accounts[0] : null;
+    } catch (error) {
+        console.error('Error getting current account:', error);
+        return null;
+    }
 }
 
 /**
@@ -396,9 +475,32 @@ function getProductImage(imageHash) {
 }
 
 // Initialize wallet connection on page load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const connectBtn = document.getElementById('connectWalletBtn');
     if (connectBtn) {
         connectBtn.addEventListener('click', connectWallet);
+    }
+    
+    // Check if user has switched accounts in MetaMask
+    if (typeof window.ethereum !== 'undefined') {
+        try {
+            const currentMetaMaskAccount = await getCurrentAccount();
+            
+            // If there's a cached account in localStorage but MetaMask shows a different one
+            const cachedAccount = localStorage.getItem('lastConnectedAccount');
+            
+            if (cachedAccount && currentMetaMaskAccount && cachedAccount !== currentMetaMaskAccount) {
+                console.log('⚠️ Account mismatch detected!');
+                console.log('Cached:', cachedAccount);
+                console.log('Current MetaMask:', currentMetaMaskAccount);
+                
+                // Clear the cache
+                localStorage.removeItem('lastConnectedAccount');
+                
+                showToast('MetaMask account changed. Please reconnect.', 'info');
+            }
+        } catch (error) {
+            console.error('Error checking account:', error);
+        }
     }
 });
