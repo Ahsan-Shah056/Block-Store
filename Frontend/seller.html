@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockchain Marketplace - Seller Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <div class="logo">
+                    <i class="fas fa-cube"></i>
+                    <span>BlockMarket</span>
+                </div>
+                <div class="nav-links">
+                    <a href="index.html">
+                        <i class="fas fa-shopping-bag"></i> Shop
+                    </a>
+                    <a href="seller.html" class="active">
+                        <i class="fas fa-store"></i> Seller Dashboard
+                    </a>
+                </div>
+                <button class="btn btn-primary" id="connectWalletBtn">
+                    <i class="fas fa-wallet"></i> Connect Wallet
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Wallet Status -->
+    <div class="wallet-status" id="walletStatus" style="display: none;">
+        <div class="container">
+            <div class="wallet-info">
+                <i class="fas fa-check-circle"></i>
+                <span>Connected: <strong id="walletAddress"></strong></span>
+                <span class="balance">Balance: <strong id="walletBalance">0</strong> ETH</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration Section -->
+    <section class="seller-registration" id="registrationSection" style="display: none;">
+        <div class="container">
+            <div class="registration-card animate-fade-in">
+                <div class="card-icon">
+                    <i class="fas fa-store"></i>
+                </div>
+                <h2>Become a Seller</h2>
+                <p>Register your store on the blockchain and start selling!</p>
+                <div class="form-group">
+                    <label>Store Name</label>
+                    <input type="text" id="storeName" placeholder="Enter your store name" class="input-field">
+                </div>
+                <button class="btn btn-primary btn-large" id="registerSellerBtn">
+                    <i class="fas fa-rocket"></i> Register as Seller
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Seller Dashboard -->
+    <section class="seller-dashboard" id="dashboardSection" style="display: none;">
+        <div class="container">
+            <!-- Dashboard Header -->
+            <div class="dashboard-header animate-fade-in">
+                <div>
+                    <h1>Welcome back, <span id="sellerName">Seller</span>! 👋</h1>
+                    <p class="subtitle">Manage your products and orders</p>
+                </div>
+                <button class="btn btn-primary" onclick="openAddProductModal()">
+                    <i class="fas fa-plus"></i> Add New Product
+                </button>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="stats-grid animate-fade-in-delay">
+                <div class="stat-card-large">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="sellerTotalProducts">0</h3>
+                        <p>Total Products</p>
+                    </div>
+                </div>
+                <div class="stat-card-large">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="sellerTotalSales">0</h3>
+                        <p>Total Sales</p>
+                    </div>
+                </div>
+                <div class="stat-card-large">
+                    <div class="stat-icon green">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="sellerTotalEarnings">0</h3>
+                        <p>Total Earnings (ETH)</p>
+                    </div>
+                </div>
+                <div class="stat-card-large">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="sellerPendingWithdrawal">0</h3>
+                        <p>Available to Withdraw</p>
+                        <button class="btn btn-small btn-success" id="withdrawBtn" style="margin-top: 10px;">
+                            <i class="fas fa-download"></i> Withdraw
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs animate-fade-in-delay-2">
+                <button class="tab-btn active" data-tab="products">
+                    <i class="fas fa-box"></i> My Products
+                </button>
+                <button class="tab-btn" data-tab="orders">
+                    <i class="fas fa-truck"></i> Orders to Ship
+                </button>
+            </div>
+
+            <!-- Products Tab -->
+            <div class="tab-content active" id="productsTab">
+                <div class="products-table">
+                    <div class="table-header">
+                        <h3><i class="fas fa-boxes"></i> Your Products</h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Image</th>
+                                    <th>Product Name</th>
+                                    <th>Price (ETH)</th>
+                                    <th>Stock</th>
+                                    <th>Sales</th>
+                                    <th>Rating</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTableBody">
+                                <tr>
+                                    <td colspan="9" class="text-center">
+                                        <i class="fas fa-spinner fa-spin"></i> Loading products...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Tab -->
+            <div class="tab-content" id="ordersTab">
+                <div class="orders-list">
+                    <div class="table-header">
+                        <h3><i class="fas fa-clipboard-list"></i> Pending Orders</h3>
+                    </div>
+                    <div id="pendingOrdersList">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin"></i> Loading orders...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Add/Edit Product Modal -->
+    <div class="modal" id="productModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="productModalTitle"><i class="fas fa-plus"></i> Add New Product</h2>
+                <button class="close-btn" onclick="closeProductModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm">
+                    <input type="hidden" id="productId" value="">
+                    
+                    <div class="form-group">
+                        <label>Product Name *</label>
+                        <input type="text" id="productName" class="input-field" placeholder="e.g., iPhone 15 Pro" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Description *</label>
+                        <textarea id="productDescription" class="input-field" rows="3" placeholder="Describe your product..." required></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Category *</label>
+                            <select id="productCategory" class="input-field" required>
+                                <option value="0">Electronics</option>
+                                <option value="1">Clothing</option>
+                                <option value="2">Books</option>
+                                <option value="3">Home</option>
+                                <option value="4">Sports</option>
+                                <option value="5">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Price (ETH) *</label>
+                            <input type="number" id="productPrice" class="input-field" step="0.001" min="0.001" placeholder="0.05" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Stock Quantity *</label>
+                            <input type="number" id="productStock" class="input-field" min="1" placeholder="10" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Category *</label>
+                            <select id="productCategory" class="input-field" required>
+                                <option value="">Select Category</option>
+                                <option value="0">Electronics</option>
+                                <option value="1">Clothing</option>
+                                <option value="2">Books</option>
+                                <option value="3">Home</option>
+                                <option value="4">Sports</option>
+                                <option value="5">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Product Image *</label>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('imageFileInput').click()" style="flex: 1;">
+                                <i class="fas fa-upload"></i> Upload Image
+                            </button>
+                            <span style="color: #666;">OR</span>
+                            <button type="button" class="btn btn-secondary" onclick="toggleImageUrlInput()" style="flex: 1;">
+                                <i class="fas fa-link"></i> Use Image URL
+                            </button>
+                        </div>
+                        
+                        <input type="file" id="imageFileInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                        
+                        <div id="imageUrlContainer" style="display: none; margin-top: 10px;">
+                            <input type="text" id="productImageUrl" class="input-field" placeholder="https://... or IPFS hash">
+                            <button type="button" class="btn btn-secondary" onclick="previewImageUrl()" style="margin-top: 5px;">
+                                <i class="fas fa-eye"></i> Preview URL
+                            </button>
+                        </div>
+                        
+                        <input type="hidden" id="productImage" required>
+                        
+                        <small style="color: #666; display: block; margin-top: 5px;">
+                            <i class="fas fa-info-circle"></i> Upload JPG, PNG, or GIF (max 2MB) or provide an image URL
+                        </small>
+                    </div>
+
+                    <div class="image-preview" id="imagePreview">
+                        <img id="previewImg" src="" alt="Preview" style="display: none; max-width: 100%; border-radius: 8px; margin-top: 10px;">
+                        <button type="button" class="btn btn-danger" id="removeImageBtn" onclick="removeImage()" style="display: none; margin-top: 10px;">
+                            <i class="fas fa-trash"></i> Remove Image
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+                <button class="btn btn-primary" id="saveProductBtn">
+                    <i class="fas fa-save"></i> Save Product
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-border"></div>
+        <p id="loadingMessage">Processing...</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+    <script src="js/web3-init.js"></script>
+    <script src="js/seller.js"></script>
+</body>
+</html>

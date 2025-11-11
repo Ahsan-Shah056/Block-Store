@@ -1,0 +1,45 @@
+{
+  "name": "blockchain-marketplace",
+  "version": "1.0.0",
+  "description": "Decentralized E-Commerce Marketplace built with Truffle and Solidity",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "truffle test",
+    "compile": "truffle compile",
+    "migrate": "truffle migrate && npm run copy-contracts",
+    "migrate:reset": "truffle migrate --reset && npm run copy-contracts",
+    "copy-contracts": "mkdir -p Frontend/contracts && cp build/contracts/Marketplace.json Frontend/contracts/",
+    "console": "truffle console",
+    "dev": "cd Frontend && python3 -m http.server 8000"
+  },
+  "keywords": [
+    "blockchain",
+    "ethereum",
+    "solidity",
+    "truffle",
+    "web3",
+    "marketplace",
+    "ecommerce",
+    "dapp"
+  ],
+  "author": "I235010",
+  "license": "MIT",
+  "devDependencies": {
+    "@truffle/hdwallet-provider": "^2.1.15",
+    "truffle": "^5.11.5"
+  },
+  "dependencies": {
+    "web3": "^1.8.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/blockchain-marketplace.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/blockchain-marketplace/issues"
+  },
+  "homepage": "https://github.com/yourusername/blockchain-marketplace#readme"
+}

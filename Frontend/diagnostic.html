@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Diagnostic Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-section h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .status {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .progress {
+            margin-top: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 MetaMask Connection Diagnostic Tool</h1>
+        <p class="subtitle">This tool will help diagnose connection issues with your dApp</p>
+
+        <!-- Test 1: MetaMask Detection -->
+        <div class="test-section">
+            <h2>Test 1: MetaMask Detection</h2>
+            <div id="test1-status" class="status pending">⏳ Checking...</div>
+        </div>
+
+        <!-- Test 2: Web3 Initialization -->
+        <div class="test-section">
+            <h2>Test 2: Web3 Initialization</h2>
+            <div id="test2-status" class="status pending">⏳ Waiting...</div>
+        </div>
+
+        <!-- Test 3: Network Detection -->
+        <div class="test-section">
+            <h2>Test 3: Network Detection</h2>
+            <div id="test3-status" class="status pending">⏳ Waiting...</div>
+            <button id="addNetworkBtn" style="display:none;">Add Ganache Network</button>
+        </div>
+
+        <!-- Test 4: Account Connection -->
+        <div class="test-section">
+            <h2>Test 4: Account Connection</h2>
+            <div id="test4-status" class="status pending">⏳ Waiting...</div>
+            <button id="connectBtn" style="display:none;">Connect MetaMask</button>
+        </div>
+
+        <!-- Test 5: Contract Loading -->
+        <div class="test-section">
+            <h2>Test 5: Contract JSON Loading</h2>
+            <div id="test5-status" class="status pending">⏳ Waiting...</div>
+        </div>
+
+        <!-- Test 6: Contract Verification -->
+        <div class="test-section">
+            <h2>Test 6: Contract Deployment Verification</h2>
+            <div id="test6-status" class="status pending">⏳ Waiting...</div>
+        </div>
+
+        <!-- Results -->
+        <div class="test-section" id="results" style="display:none;">
+            <h2>🎉 Connection Successful!</h2>
+            <div id="final-status" class="status success"></div>
+            <button onclick="window.location.href='index.html'">Go to Buyer Interface</button>
+            <button onclick="window.location.href='seller.html'">Go to Seller Dashboard</button>
+        </div>
+
+        <div class="progress" id="progress"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+    <script>
+        let web3;
+        let contractData;
+
+        // Test 1: Check MetaMask
+        async function test1_checkMetaMask() {
+            const statusEl = document.getElementById('test1-status');
+            
+            if (typeof window.ethereum !== 'undefined') {
+                statusEl.className = 'status success';
+                statusEl.textContent = '✅ MetaMask detected! Version: ' + window.ethereum.isMetaMask;
+                return true;
+            } else {
+                statusEl.className = 'status error';
+                statusEl.innerHTML = '❌ MetaMask not found! <a href="https://metamask.io/download/" target="_blank">Install MetaMask</a>';
+                return false;
+            }
+        }
+
+        // Test 2: Initialize Web3
+        async function test2_initWeb3() {
+            const statusEl = document.getElementById('test2-status');
+            
+            try {
+                web3 = new Web3(window.ethereum);
+                statusEl.className = 'status success';
+                statusEl.textContent = '✅ Web3 initialized successfully';
+                return true;
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = '❌ Failed to initialize Web3: ' + error.message;
+                return false;
+            }
+        }
+
+        // Test 3: Check Network
+        async function test3_checkNetwork() {
+            const statusEl = document.getElementById('test3-status');
+            const addBtn = document.getElementById('addNetworkBtn');
+            
+            try {
+                const chainId = await web3.eth.getChainId();
+                const networkId = await web3.eth.net.getId();
+                
+                statusEl.className = 'status info';
+                statusEl.innerHTML = `ℹ️ Current Network:<br>Chain ID: ${chainId}<br>Network ID: ${networkId}`;
+                
+                if (chainId === 5777 || chainId === 1337) {
+                    statusEl.className = 'status success';
+                    statusEl.innerHTML += '<br>✅ Ganache network detected!';
+                    return true;
+                } else {
+                    statusEl.className = 'status error';
+                    statusEl.innerHTML += '<br>❌ Wrong network! Expected Chain ID: 5777 or 1337';
+                    addBtn.style.display = 'inline-block';
+                    return false;
+                }
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = '❌ Failed to check network: ' + error.message;
+                return false;
+            }
+        }
+
+        // Add Ganache Network
+        document.getElementById('addNetworkBtn').addEventListener('click', async () => {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: '0x1691', // 5777
+                        chainName: 'Ganache Local',
+                        rpcUrls: ['http://127.0.0.1:7545'],
+                        nativeCurrency: {
+                            name: 'Ether',
+                            symbol: 'ETH',
+                            decimals: 18
+                        }
+                    }]
+                });
+                
+                // Recheck network after adding
+                await test3_checkNetwork();
+                if (await test3_checkNetwork()) {
+                    await test4_connectAccount();
+                }
+            } catch (error) {
+                alert('Failed to add network: ' + error.message);
+            }
+        });
+
+        // Test 4: Connect Account
+        async function test4_connectAccount() {
+            const statusEl = document.getElementById('test4-status');
+            const connectBtn = document.getElementById('connectBtn');
+            
+            try {
+                // Check if already connected
+                const accounts = await web3.eth.getAccounts();
+                
+                if (accounts.length > 0) {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = '✅ Connected: ' + accounts[0];
+                    return true;
+                } else {
+                    statusEl.className = 'status pending';
+                    statusEl.textContent = '⏳ Please connect your MetaMask account';
+                    connectBtn.style.display = 'inline-block';
+                    return false;
+                }
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = '❌ Failed to check accounts: ' + error.message;
+                return false;
+            }
+        }
+
+        // Connect Button Handler
+        document.getElementById('connectBtn').addEventListener('click', async () => {
+            const statusEl = document.getElementById('test4-status');
+            
+            try {
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+                
+                statusEl.className = 'status success';
+                statusEl.textContent = '✅ Connected: ' + accounts[0];
+                document.getElementById('connectBtn').style.display = 'none';
+                
+                // Continue to next test
+                await test5_loadContract();
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = '❌ Connection rejected: ' + error.message;
+            }
+        });
+
+        // Test 5: Load Contract
+        async function test5_loadContract() {
+            const statusEl = document.getElementById('test5-status');
+            
+            const paths = [
+                'contracts/Marketplace.json',
+                '../build/contracts/Marketplace.json',
+                '/build/contracts/Marketplace.json'
+            ];
+            
+            for (const path of paths) {
+                try {
+                    const response = await fetch(path);
+                    if (response.ok) {
+                        contractData = await response.json();
+                        statusEl.className = 'status success';
+                        statusEl.textContent = '✅ Contract loaded from: ' + path;
+                        await test6_verifyContract();
+                        return true;
+                    }
+                } catch (err) {
+                    console.log('Failed path:', path);
+                }
+            }
+            
+            statusEl.className = 'status error';
+            statusEl.textContent = '❌ Failed to load Marketplace.json from any path';
+            return false;
+        }
+
+        // Test 6: Verify Contract Deployment
+        async function test6_verifyContract() {
+            const statusEl = document.getElementById('test6-status');
+            
+            try {
+                const networkId = await web3.eth.net.getId();
+                const deployedNetwork = contractData.networks[networkId];
+                
+                if (!deployedNetwork) {
+                    const availableNetworks = Object.keys(contractData.networks);
+                    statusEl.className = 'status error';
+                    statusEl.innerHTML = `❌ Contract not deployed on network ${networkId}<br>` +
+                                        `Available networks: ${availableNetworks.join(', ')}`;
+                    return false;
+                }
+                
+                const contractAddress = deployedNetwork.address;
+                const contract = new web3.eth.Contract(contractData.abi, contractAddress);
+                
+                // Try to call a view function
+                try {
+                    const owner = await contract.methods.owner().call();
+                    
+                    statusEl.className = 'status success';
+                    statusEl.innerHTML = `✅ Contract verified!<br>` +
+                                        `Address: ${contractAddress}<br>` +
+                                        `Owner: ${owner}`;
+                    
+                    // Show success
+                    showSuccess(contractAddress, owner);
+                    return true;
+                } catch (error) {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = '❌ Contract exists but failed to call: ' + error.message;
+                    return false;
+                }
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = '❌ Failed to verify contract: ' + error.message;
+                return false;
+            }
+        }
+
+        // Show Success
+        function showSuccess(address, owner) {
+            const resultsDiv = document.getElementById('results');
+            const finalStatus = document.getElementById('final-status');
+            
+            resultsDiv.style.display = 'block';
+            finalStatus.innerHTML = `✅ All tests passed!<br><br>` +
+                                   `Contract Address: ${address}<br>` +
+                                   `Contract Owner: ${owner}<br><br>` +
+                                   `You can now use the dApp!`;
+            
+            updateProgress('✅ All tests completed successfully!');
+        }
+
+        // Update Progress
+        function updateProgress(message) {
+            document.getElementById('progress').textContent = message;
+        }
+
+        // Run all tests
+        async function runTests() {
+            updateProgress('Running diagnostics...');
+            
+            // Test 1
+            if (!await test1_checkMetaMask()) {
+                updateProgress('❌ MetaMask not found');
+                return;
+            }
+            
+            // Test 2
+            if (!await test2_initWeb3()) {
+                updateProgress('❌ Web3 initialization failed');
+                return;
+            }
+            
+            // Test 3
+            const networkOK = await test3_checkNetwork();
+            if (!networkOK) {
+                updateProgress('⚠️ Please add Ganache network and switch to it');
+                return;
+            }
+            
+            // Test 4
+            const accountOK = await test4_connectAccount();
+            if (!accountOK) {
+                updateProgress('⚠️ Please click "Connect MetaMask" button');
+                return;
+            }
+            
+            // Test 5 & 6 (will run after connection)
+            await test5_loadContract();
+        }
+
+        // Start tests on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            runTests();
+        });
+    </script>
+</body>
+</html>
