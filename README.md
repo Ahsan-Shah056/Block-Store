@@ -31,6 +31,59 @@ BlockMarket is a decentralized e-commerce platform that enables secure peer-to-p
 
 ---
 
+## 📱 App UI Screenshots
+
+<div align="center">
+
+### 🖥️ Seller Dashboard
+
+<table>
+<tr>
+<td width="50%">
+<img src="screenshots/06-seller-registration.png" alt="Seller Registration" width="100%"/>
+<p><b>Seller Registration</b><br/>Simple registration form to become a seller</p>
+</td>
+<td width="50%">
+<img src="screenshots/07-seller-add-product.png" alt="Add Product" width="100%"/>
+<p><b>Add Product Interface</b><br/>Upload images, set prices, manage inventory</p>
+</td>
+</tr>
+</table>
+
+### 🛒 Buyer Interface
+
+<table>
+<tr>
+<td width="50%">
+<img src="screenshots/08-buyer-browse-products.png" alt="Browse Products" width="100%"/>
+<p><b>Product Marketplace</b><br/>Browse products with filters, ratings, and categories</p>
+</td>
+<td width="50%">
+<img src="screenshots/09-buyer-cart-checkout.png" alt="Shopping Cart" width="100%"/>
+<p><b>Shopping Cart & Checkout</b><br/>Review cart items and proceed to checkout</p>
+</td>
+</tr>
+</table>
+
+### 💳 Transaction Flow
+
+<table>
+<tr>
+<td width="50%">
+<img src="screenshots/10-metamask-transaction-confirm.png" alt="MetaMask Transaction" width="100%"/>
+<p><b>MetaMask Confirmation</b><br/>Secure transaction signing with MetaMask</p>
+</td>
+<td width="50%">
+<img src="screenshots/11-purchase-success.png" alt="Purchase Success" width="100%"/>
+<p><b>Purchase Complete</b><br/>Order confirmation and tracking</p>
+</td>
+</tr>
+</table>
+
+</div>
+
+---
+
 ## ✨ Features
 
 <table>
@@ -443,32 +496,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-## 👨‍💻 Developer
-
-**Ahsan Shah**  
-Student ID: I235010  
-Section: FT-B  
-Course: MG3012 - Blockchain Technology
-
-📧 Email: i235010@nu.edu.pk  
-🐙 GitHub: [@Ahsan-Shah056](https://github.com/Ahsan-Shah056)
-
----
-
-## 🙏 Acknowledgments
-
-- Truffle Suite for excellent blockchain development tools
-- MetaMask for seamless wallet integration
-- FAST-NUCES for blockchain technology education
-- Open-source community for inspiration and resources
-
----
-
 <div align="center">
 
 **⭐ Star this repo if you found it helpful!**
 
-Made with ❤️ using Blockchain Technology
+
 
 [Report Bug](https://github.com/Ahsan-Shah056/I235010-Ft-b-assignment-3/issues) · [Request Feature](https://github.com/Ahsan-Shah056/I235010-Ft-b-assignment-3/issues)
 
