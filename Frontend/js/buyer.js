@@ -646,6 +646,7 @@ async function generateReceipt(orderId) {
             <head>
                 <title>Receipt #${orderId}</title>
                 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
                     
@@ -846,14 +847,45 @@ async function generateReceipt(orderId) {
                         color: var(--text-dark);
                     }
                     
+                    .action-bar {
+                        text-align: center;
+                        margin-bottom: 20px;
+                    }
+                    
+                    .btn-download {
+                        background: var(--primary);
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 8px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        transition: background 0.2s;
+                    }
+                    
+                    .btn-download:hover {
+                        background: #4338ca;
+                    }
+                    
                     @media print {
                         body { background: white; padding: 0; }
                         .receipt-card { box-shadow: none; padding: 20px; }
+                        .action-bar { display: none; }
                     }
                 </style>
             </head>
             <body>
-                <div class="receipt-card">
+                <div class="action-bar">
+                    <button class="btn-download" onclick="downloadPDF()">
+                        <i class="fas fa-download"></i> Download PDF
+                    </button>
+                </div>
+                
+                <div class="receipt-card" id="receipt-content">
                     <div class="header">
                         <div class="brand">
                             <div class="brand-icon"><i class="fas fa-cube"></i></div>
@@ -938,8 +970,19 @@ async function generateReceipt(orderId) {
                     </div>
                 </div>
                 <script>
-                    // Auto-print after images load
-                    window.onload = () => { setTimeout(() => window.print(), 500); };
+                    function downloadPDF() {
+                        const element = document.getElementById('receipt-content');
+                        const opt = {
+                            margin: 10,
+                            filename: 'BlockMarket_Receipt_${orderId}.pdf',
+                            image: { type: 'jpeg', quality: 0.98 },
+                            html2canvas: { scale: 2 },
+                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                        };
+                        html2pdf().set(opt).from(element).save();
+                    }
+                    
+                    // Auto-print removed, user can choose
                 </script>
             </body>
             </html>

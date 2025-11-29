@@ -68,7 +68,7 @@ async function loadDashboardData() {
     try {
         console.log("📊 Loading dashboard data...");
         const totalOrders = await contract.methods.orderCounter().call();
-        console.log(`Total orders in contract: ${totalOrders}`);
+
         
         const salesByMonth = new Array(12).fill(0);
         const salesByCategory = new Array(6).fill(0); 
@@ -83,7 +83,7 @@ async function loadDashboardData() {
             const order = await contract.methods.orders(i).call();
             
             if (order.seller.toLowerCase() === currentAccount.toLowerCase()) {
-                console.log(`✅ Match found: Order #${i}`);
+
                 
                 // Sales stats
                 const date = new Date(parseInt(order.createdAt) * 1000);
@@ -623,7 +623,7 @@ async function loadPendingOrders() {
     }
 }
 
-async function markAsShipped(orderId) {
+async function shipOrder(orderId) {
     if (!checkConnection()) return;
 
     try {

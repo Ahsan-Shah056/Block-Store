@@ -382,11 +382,11 @@ function checkConnection() {
  * Get product image
  */
 function getProductImage(imageHash) {
-    if (!imageHash) return 'https://via.placeholder.com/300x200?text=No+Image';
+    if (!imageHash) return 'images/product-placeholder.png';
     if (imageHash.startsWith('http')) return imageHash;
     // Handle fake hashes from sample data
     if (imageHash.startsWith('QmHash')) {
-        return `https://via.placeholder.com/300x200?text=Product+${imageHash.substring(6)}`;
+        return 'images/product-placeholder.png';
     }
     if (imageHash.startsWith('ipfs://')) {
         return imageHash.replace('ipfs://', 'https://ipfs.io/ipfs/');

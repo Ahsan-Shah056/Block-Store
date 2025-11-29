@@ -119,17 +119,19 @@ async function loadCartDetails() {
     }
     
     let html = '';
-    let total = 0;
+    let totalWei = BigInt(0);
     
     try {
         for (const item of cart) {
             const product = await contract.methods.products(item.productId).call();
-            const productTotal = (parseFloat(web3.utils.fromWei(product.price, 'ether')) * item.quantity);
-            total += productTotal;
+            const itemTotalWei = BigInt(product.price) * BigInt(item.quantity);
+            totalWei += itemTotalWei;
+            
+            const productTotalEth = parseFloat(web3.utils.fromWei(itemTotalWei.toString(), 'ether'));
             
             html += `
                 <div class="cart-item">
-                    <img src="${getProductImage(product.imageHash)}" alt="${product.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 15px;">
+                    <img src="${getProductImage(product.imageHash)}" alt="${product.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 15px;" onerror="this.src='images/product-placeholder.png'">
                     <div class="cart-item-info">
                         <h4>${product.name}</h4>
                         <p class="price">${formatEth(product.price)} ETH each</p>
@@ -140,7 +142,7 @@ async function loadCartDetails() {
                         <button onclick="updateCartQuantity(${item.productId}, ${item.quantity + 1})">+</button>
                     </div>
                     <div class="cart-item-total">
-                        ${productTotal.toFixed(4)} ETH
+                        ${productTotalEth.toFixed(4)} ETH
                     </div>
                     <button class="btn-remove" onclick="removeFromCart(${item.productId})">
                         <i class="fas fa-trash"></i>
@@ -151,16 +153,53 @@ async function loadCartDetails() {
         
         cartItemsContainer.innerHTML = html;
         
+        // Calculate Discount
+        let discountWei = BigInt(0);
+        try {
+            discountWei = BigInt(await contract.methods.calculateDiscount(totalWei.toString(), currentAccount).call());
+        } catch (err) {
+            console.warn("Error checking discount:", err);
+        }
+
+        const finalPriceWei = totalWei - discountWei;
+        const totalEth = parseFloat(web3.utils.fromWei(totalWei.toString(), 'ether'));
+        const discountEth = parseFloat(web3.utils.fromWei(discountWei.toString(), 'ether'));
+        const finalEth = parseFloat(web3.utils.fromWei(finalPriceWei.toString(), 'ether'));
+        
         // Update Summary
         const subtotalElement = document.getElementById('cartSubtotal');
         const feeElement = document.getElementById('cartFee');
         
-        if (subtotalElement) subtotalElement.textContent = `${total.toFixed(4)} ETH`;
-        // Fee is included in price, so we can show it for info or just show 0 extra
-        // Contract takes fee from the price, buyer pays Price * Qty
+        if (subtotalElement) subtotalElement.textContent = `${totalEth.toFixed(4)} ETH`;
         if (feeElement) feeElement.textContent = 'Included'; 
         
-        cartTotalElement.textContent = `${total.toFixed(4)} ETH`;
+        // Inject Discount Row if applicable
+        const summaryContainer = document.querySelector('.cart-summary');
+        const existingDiscountRow = document.getElementById('cartDiscountRow');
+        if (existingDiscountRow) existingDiscountRow.remove();
+
+        if (discountWei > 0) {
+            const discountRow = document.createElement('div');
+            discountRow.id = 'cartDiscountRow';
+            discountRow.className = 'summary-row discount';
+            discountRow.style.color = '#10b981';
+            discountRow.style.display = 'flex';
+            discountRow.style.justifyContent = 'space-between';
+            discountRow.style.marginBottom = '10px';
+            discountRow.innerHTML = `
+                <span>VIP Discount:</span>
+                <span>-${discountEth.toFixed(4)} ETH</span>
+            `;
+            // Insert before total (which is usually the last element or close to it)
+            // We need to find where to insert. 
+            // Assuming structure: Subtotal -> Fee -> HR -> Total
+            // We can insert after Fee.
+            if (feeElement && feeElement.parentElement) {
+                feeElement.parentElement.after(discountRow);
+            }
+        }
+        
+        cartTotalElement.textContent = `${finalEth.toFixed(4)} ETH`;
         
         if (checkoutBtn) checkoutBtn.disabled = false;
         
@@ -354,5 +393,61 @@ async function checkoutCart() {
         hideLoading();
         console.error('Cart checkout error:', error);
         showToast('Purchase failed or cancelled: ' + error.message, 'error');
+    }
+}
+
+async function purchaseProduct(product, quantity) {
+    try {
+        const totalPriceWei = BigInt(product.price) * BigInt(quantity);
+        let finalPriceWei = totalPriceWei;
+        let useDiscountFunction = false;
+
+        try {
+            const discountWei = await contract.methods.calculateDiscount(totalPriceWei.toString(), currentAccount).call();
+            if (BigInt(discountWei) > BigInt(0)) {
+                console.log(`🎉 VIP Discount found: ${web3.utils.fromWei(discountWei, 'ether')} ETH`);
+                finalPriceWei = totalPriceWei - BigInt(discountWei);
+                useDiscountFunction = true;
+                showToast(`Applying VIP Discount! New Price: ${web3.utils.fromWei(finalPriceWei.toString(), 'ether')} ETH`, 'info');
+            }
+        } catch (err) {
+            console.warn("Error checking discount:", err);
+        }
+
+        // Simulate transaction first
+        try {
+            if (useDiscountFunction) {
+                await contract.methods.purchaseWithTokenDiscount(product.id, quantity, 0)
+                    .call({ from: currentAccount, value: finalPriceWei.toString() });
+            } else {
+                await contract.methods.purchaseProduct(product.id, quantity)
+                    .call({ from: currentAccount, value: totalPriceWei.toString() });
+            }
+        } catch (simError) {
+            console.error("Simulation failed:", simError);
+            let errorMessage = "Transaction simulation failed";
+            if (simError.message && simError.message.includes("Internal JSON-RPC error")) {
+                 errorMessage = "Transaction failed: Check if you have enough funds or if the product is still available.";
+            } else {
+                 errorMessage = simError.message || errorMessage;
+            }
+            throw new Error(errorMessage);
+        }
+
+        // Send Transaction
+        if (useDiscountFunction) {
+            await contract.methods.purchaseWithTokenDiscount(product.id, quantity, 0)
+                .send({ from: currentAccount, value: finalPriceWei.toString(), gas: 3000000 });
+        } else {
+            await contract.methods.purchaseProduct(product.id, quantity)
+                .send({ from: currentAccount, value: totalPriceWei.toString(), gas: 3000000 });
+        }
+        
+        return true;
+
+    } catch (error) {
+        console.error("Purchase error:", error);
+        // Don't throw here, return false so checkoutCart can handle it
+        return false;
     }
 }
