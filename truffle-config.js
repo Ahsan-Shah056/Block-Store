@@ -66,8 +66,10 @@ module.exports = {
     //
     development: {
      host: "127.0.0.1",     // Localhost (default: none)
-     port: 7545,            // Ganache default port
+     port: 7545,            // Ganache-cli with unlimited contract size
      network_id: "*",       // Any network (default: none)
+     gas: 30000000,          // Increased gas limit for large contract
+     gasPrice: 20000000000   // 20 gwei
     },
     //
     // An additional network, but with some advanced options…
@@ -103,14 +105,13 @@ module.exports = {
     // timeout: 100000
   },
 
-  // Configure your compilers
   compilers: {
     solc: {
       version: "0.8.19",      // Fetch exact version from solc-bin (default: truffle's version)
       settings: {          // See the solidity docs for advice about optimization and evmVersion
        optimizer: {
          enabled: true,
-         runs: 200
+         runs: 1              // Reduced to 1 for smaller bytecode (deployment size priority)
        },
        viaIR: false
       }

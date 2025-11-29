@@ -28,10 +28,13 @@
   "author": "I235010",
   "license": "MIT",
   "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
     "@truffle/hdwallet-provider": "^2.1.15",
+    "hardhat": "^3.0.16",
     "truffle": "^5.11.5"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^4.9.3",
     "web3": "^1.8.0"
   },
   "repository": {

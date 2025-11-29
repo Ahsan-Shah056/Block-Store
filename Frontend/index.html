@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https: http:;">
     <title>Blockchain Marketplace - Shop</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -26,6 +27,9 @@
                     <a href="#" id="myOrdersLink">
                         <i class="fas fa-receipt"></i> My Orders
                     </a>
+                    <button class="theme-toggle" id="themeToggle" title="Toggle Dark Mode">
+                        <i class="fas fa-moon"></i>
+                    </button>
                 </div>
                 <button class="btn btn-primary" id="connectWalletBtn">
                     <i class="fas fa-wallet"></i> Connect Wallet
@@ -73,7 +77,13 @@
             <div class="wallet-info">
                 <i class="fas fa-check-circle"></i>
                 <span>Connected: <strong id="walletAddress"></strong></span>
-                <span class="balance">Balance: <strong id="walletBalance">0</strong> ETH</span>
+                <span class="balance">Balance: <strong id="walletBalance">0</strong></span>
+                <!-- VIP Tier Badge -->
+                <span class="vip-tier-badge" id="vipTierBadge" style="display: none;">
+                    <i class="fas fa-crown"></i>
+                    <span id="vipTierName">VIP</span>
+                    <small id="vipDiscount"></small>
+                </span>
             </div>
         </div>
     </div>
@@ -106,6 +116,13 @@
                         <option value="price-high">Price: High to Low</option>
                         <option value="rating">Highest Rated</option>
                     </select>
+                </div>
+                <div class="filter-group">
+                    <label>Price Range:</label>
+                    <div class="price-range">
+                        <input type="range" id="priceRange" min="0" max="10" step="0.1" value="10">
+                        <span id="priceValue">10 ETH</span>
+                    </div>
                 </div>
                 <button class="btn btn-secondary" id="viewCartBtn">
                     <i class="fas fa-shopping-cart"></i> Cart (<span id="cartCount">0</span>)
@@ -179,6 +196,33 @@
             <div class="modal-body">
                 <div id="ordersList">
                     <!-- Orders will be displayed here -->
+                </div>
+                
+                <!-- Transaction Tracker (Hidden by default, shown when viewing specific order) -->
+                <div id="transactionTracker" style="display: none; margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 2rem;">
+                    <h3><i class="fas fa-shipping-fast"></i> Order Status</h3>
+                    <div class="stepper">
+                        <div class="step" id="step-ordered">
+                            <div class="step-icon"><i class="fas fa-shopping-cart"></i></div>
+                            <div class="step-label">Ordered</div>
+                        </div>
+                        <div class="step" id="step-shipped">
+                            <div class="step-icon"><i class="fas fa-box"></i></div>
+                            <div class="step-label">Shipped</div>
+                        </div>
+                        <div class="step" id="step-delivered">
+                            <div class="step-icon"><i class="fas fa-truck"></i></div>
+                            <div class="step-label">Delivered</div>
+                        </div>
+                        <div class="step" id="step-completed">
+                            <div class="step-icon"><i class="fas fa-check"></i></div>
+                            <div class="step-label">Completed</div>
+                        </div>
+                    </div>
+                    <div class="text-center" style="margin-top: 1rem;">
+                        <button class="btn btn-secondary btn-small" onclick="closeTracker()">Back to Orders</button>
+                        <button class="btn btn-primary btn-small" id="downloadReceiptBtn"><i class="fas fa-file-invoice"></i> Download Receipt</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -257,6 +301,62 @@
                 </div>
             </div>
         </div>
+        </div>
+    </div>
+
+    <!-- User Dashboard Modal -->
+    <div class="modal" id="dashboardModal">
+        <div class="modal-content dashboard-modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-astronaut"></i> User Dashboard</h2>
+                <button class="close-modal" onclick="closeDashboard()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- VIP Status Card -->
+                <div class="dashboard-card vip-card">
+                    <div class="card-icon" id="dashVipIcon">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <div class="card-info">
+                        <h3>VIP Status</h3>
+                        <span id="dashVipTier" class="vip-badge vip-none">None</span>
+                        <p id="dashVipDiscount" class="discount-text">0% Discount</p>
+                    </div>
+                </div>
+
+                <!-- Token Balance Card -->
+                <div class="dashboard-card token-card">
+                    <div class="card-icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="card-info">
+                        <h3>Token Balance</h3>
+                        <span id="dashTokenBalance" class="balance-text">0.00 BMT</span>
+                        <button id="mintTokensBtn" class="btn btn-sm btn-outline">
+                            <i class="fas fa-faucet"></i> Mint Test Tokens
+                        </button>
+                        <button id="createTestOrderBtn" class="btn btn-sm btn-outline" style="margin-top: 0.5rem;">
+                            <i class="fas fa-shopping-bag"></i> Create Test Order
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Staking Section (Sellers Only) -->
+                <div id="stakingSection" class="dashboard-card staking-card" style="display: none;">
+                    <div class="card-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div class="card-info">
+                        <h3>Seller Staking</h3>
+                        <p>Staked: <span id="dashStakedAmount">0.00 BMT</span></p>
+                        <div class="staking-actions">
+                            <button id="stakeBtn" class="btn btn-sm btn-primary">Stake</button>
+                            <button id="unstakeBtn" class="btn btn-sm btn-danger">Unstake</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Notification Toast -->
@@ -274,6 +374,8 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
     <script src="js/web3-init.js"></script>
+    <script src="js/shopping-cart.js"></script>
     <script src="js/buyer.js"></script>
+    <script src="js/dashboard.js"></script>
 </body>
 </html>

@@ -3,13 +3,16 @@
  * Handles MetaMask connection and contract setup
  */
 
-// Contract ABI and Address (will be set after deployment)
+// Contract ABI and Address
 let contractAddress = null;
 let contractABI = null;
+let tokenAddress = null;
+let tokenABI = null;
 
 // Web3 and Contract instances
 let web3 = null;
 let contract = null;
+let tokenContract = null;
 let currentAccount = null;
 
 // Categories mapping
@@ -20,73 +23,60 @@ const CATEGORIES = ['Electronics', 'Clothing', 'Books', 'Home', 'Sports', 'Other
  */
 async function initWeb3() {
     try {
-        // Load contract details from JSON - try multiple paths
-        let contractData;
-        let response;
-        
-        // Try different paths based on where the server is running from
-        const paths = [
-            'contracts/Marketplace.json',      // When server runs from Frontend/
-            '../build/contracts/Marketplace.json',
-            '/build/contracts/Marketplace.json'
-        ];
-        
-        for (const path of paths) {
-            try {
-                response = await fetch(path);
-                if (response.ok) {
-                    contractData = await response.json();
-                    console.log(`✅ Contract loaded from: ${path}`);
-                    break;
-                }
-            } catch (err) {
-                console.log(`❌ Failed to load from: ${path}`);
-                continue;
-            }
-        }
-        
+        // Load Marketplace contract
+        let contractData = await loadContractData('Marketplace.json');
         if (!contractData) {
-            throw new Error('Could not find Marketplace.json. Please ensure the contract is compiled and deployed.');
+            throw new Error('Could not find Marketplace.json');
         }
-        
+
         contractABI = contractData.abi;
-        
+
         // Get deployed network
         const networkId = await web3.eth.net.getId();
         console.log('🌐 Connected Network ID:', networkId);
-        console.log('📋 Available networks in contract:', Object.keys(contractData.networks));
-        
+
         const deployedNetwork = contractData.networks[networkId];
-        
+
         if (!deployedNetwork) {
-            // Provide helpful error message
-            const availableNetworks = Object.keys(contractData.networks);
-            if (availableNetworks.length === 0) {
-                throw new Error('Contract not deployed on any network. Please run: truffle migrate');
-            }
-            
-            let errorMsg = `Wrong network! MetaMask is connected to network ${networkId}.\n\n`;
-            errorMsg += `The contract is deployed on network ${availableNetworks[0]}.\n\n`;
-            errorMsg += `Please:\n`;
-            errorMsg += `1. Open MetaMask\n`;
-            errorMsg += `2. Switch to "Ganache Local" network\n`;
-            errorMsg += `3. Or add it with:\n`;
-            errorMsg += `   - RPC URL: http://127.0.0.1:7545\n`;
-            errorMsg += `   - Chain ID: ${availableNetworks[0]}\n`;
-            errorMsg += `   - Currency: ETH`;
-            
-            throw new Error(errorMsg);
+            throw new Error(`Marketplace contract not deployed on network ${networkId}`);
         }
-        
+
         contractAddress = deployedNetwork.address;
-        
-        // Initialize contract
         contract = new web3.eth.Contract(contractABI, contractAddress);
-        
-        console.log('✅ Web3 initialized successfully');
-        console.log('📍 Contract Address:', contractAddress);
-        console.log('📝 Contract has', Object.keys(contract.methods).length, 'methods');
-        
+
+        console.log('✅ Marketplace Contract initialized at:', contractAddress);
+
+        // Load BlockToken contract
+        try {
+            let tokenData = await loadContractData('BlockToken.json');
+            if (tokenData) {
+                tokenABI = tokenData.abi;
+                
+                // Fetch token address from Marketplace contract since it was deployed internally
+                try {
+                    tokenAddress = await contract.methods.token().call();
+                    console.log('📍 Token Address from Marketplace:', tokenAddress);
+                    
+                    if (tokenAddress && tokenAddress !== '0x0000000000000000000000000000000000000000') {
+                        tokenContract = new web3.eth.Contract(tokenABI, tokenAddress);
+                        console.log('✅ BlockToken Contract initialized at:', tokenAddress);
+                    } else {
+                        console.warn('⚠️ Token address not set in Marketplace');
+                    }
+                } catch (err) {
+                    console.warn('⚠️ Failed to fetch token address from Marketplace:', err);
+                    // Fallback to artifact if available (unlikely for internal deploy)
+                    const tokenNetwork = tokenData.networks[networkId];
+                    if (tokenNetwork) {
+                        tokenAddress = tokenNetwork.address;
+                        tokenContract = new web3.eth.Contract(tokenABI, tokenAddress);
+                    }
+                }
+            }
+        } catch (tokenError) {
+            console.warn('⚠️ Failed to load BlockToken:', tokenError);
+        }
+
         return true;
     } catch (error) {
         console.error('❌ Error initializing Web3:', error);
@@ -95,136 +85,76 @@ async function initWeb3() {
     }
 }
 
+async function loadContractData(filename) {
+    const paths = [
+        `contracts/${filename}`,
+        `../build/contracts/${filename}`,
+        `/build/contracts/${filename}`
+    ];
+
+    for (const path of paths) {
+        try {
+            const response = await fetch(path);
+            if (response.ok) {
+                console.log(`✅ Loaded ${filename} from: ${path}`);
+                return await response.json();
+            }
+        } catch (err) {
+            continue;
+        }
+    }
+    return null;
+}
+
 /**
  * Connect to MetaMask wallet
  */
 async function connectWallet() {
     try {
         console.log('🔌 Attempting to connect wallet...');
-        
-        // Check if MetaMask is installed
+
         if (typeof window.ethereum === 'undefined') {
-            console.error('❌ MetaMask not found');
-            showToast('Please install MetaMask to use this dApp!', 'error');
+            showToast('Please install MetaMask!', 'error');
             window.open('https://metamask.io/download/', '_blank');
             return false;
         }
-        
-        console.log('✅ MetaMask detected');
-        
-        // Initialize Web3
+
         web3 = new Web3(window.ethereum);
-        console.log('✅ Web3 instance created');
-        
-        // Check network before requesting accounts
-        const chainId = await web3.eth.getChainId();
-        console.log('🔗 Current Chain ID:', chainId);
-        
-        // Ganache default is 1337 (0x539) or 5777 (0x1691)
-        // Also check the network ID to be more flexible
-        const networkId = await web3.eth.net.getId();
-        console.log('🌐 Network ID:', networkId);
-        
-        const expectedChainIds = [1337, 5777];
-        const expectedNetworkIds = [1337, 5777];
-        
-        const chainIdOk = expectedChainIds.includes(Number(chainId));
-        const networkIdOk = expectedNetworkIds.includes(Number(networkId));
-        
-        if (!chainIdOk && !networkIdOk) {
-            const shouldSwitch = confirm(
-                `⚠️ Wrong Network!\n\n` +
-                `You're connected to Chain ID: ${chainId}\n` +
-                `Expected: 5777 or 1337 (Ganache Local)\n\n` +
-                `Would you like to switch to the Ganache network?\n` +
-                `(You may need to add it manually in MetaMask)`
-            );
-            
-            if (shouldSwitch) {
-                try {
-                    // Try to switch to Ganache network
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0x1691' }], // 5777 in hex
-                    });
-                } catch (switchError) {
-                    // If network doesn't exist, try to add it
-                    if (switchError.code === 4902) {
-                        await window.ethereum.request({
-                            method: 'wallet_addEthereumChain',
-                            params: [{
-                                chainId: '0x1691',
-                                chainName: 'Ganache Local',
-                                rpcUrls: ['http://127.0.0.1:7545'],
-                                nativeCurrency: {
-                                    name: 'Ether',
-                                    symbol: 'ETH',
-                                    decimals: 18
-                                }
-                            }]
-                        });
-                    } else {
-                        throw switchError;
-                    }
-                }
-            } else {
-                showToast('Please switch to Ganache network in MetaMask', 'error');
-                return false;
-            }
-        }
-        
-        console.log('📡 Requesting account access...');
-        
-        // Clear any cached account first
-        currentAccount = null;
-        
-        // Request account access - this will prompt MetaMask
-        const accounts = await window.ethereum.request({ 
-            method: 'eth_requestAccounts' 
-        });
-        
+
+        // Request account access
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+
         if (!accounts || accounts.length === 0) {
-            throw new Error('No accounts found. Please unlock MetaMask.');
+            throw new Error('No accounts found');
         }
-        
-        console.log('✅ Account access granted:', accounts[0]);
-        console.log('📋 Available accounts:', accounts);
-        
-        // Always use checksummed address to avoid case mismatch issues
+
         currentAccount = web3.utils.toChecksumAddress(accounts[0]);
-        console.log('📝 Using checksummed address:', currentAccount);
-        
-        console.log('🔄 Initializing contract...');
-        
-        // Initialize contract
+        console.log('✅ Connected account:', currentAccount);
+
+        // Initialize contracts
         const initialized = await initWeb3();
-        if (!initialized) {
-            console.error('❌ Contract initialization failed');
-            return false;
-        }
-        
-        console.log('✅ Contract initialized successfully');
-        
-        // Save connected account to localStorage for future reference
+        if (!initialized) return false;
+
+        // Save to localStorage
         localStorage.setItem('lastConnectedAccount', currentAccount);
-        
+
         // Update UI
-        updateWalletUI();
-        
-        // Listen for account changes (remove old listeners first to avoid duplicates)
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
+        await updateWalletUI();
+
+        // Initialize cart for this account
+        if (typeof initializeCart === 'function') {
+            initializeCart();
+        }
+
+        // Setup listeners
         window.ethereum.on('accountsChanged', handleAccountsChanged);
         window.ethereum.on('chainChanged', handleChainChanged);
-        
-        console.log('🎉 Wallet connected successfully!');
-        
+
         showToast('Wallet connected successfully!', 'success');
-        
         return true;
     } catch (error) {
         console.error('Error connecting wallet:', error);
-        showToast('Failed to connect wallet. Please try again.', 'error');
+        showToast('Failed to connect wallet', 'error');
         return false;
     }
 }
@@ -237,36 +167,45 @@ async function updateWalletUI() {
     const walletAddress = document.getElementById('walletAddress');
     const walletBalance = document.getElementById('walletBalance');
     const connectBtn = document.getElementById('connectWalletBtn');
-    
+
     if (currentAccount) {
-        // Show wallet status
         walletStatus.style.display = 'block';
-        
-        // Display shortened address
-        const shortAddress = `${currentAccount.substring(0, 6)}...${currentAccount.substring(38)}`;
-        walletAddress.textContent = shortAddress;
-        
-        // Get and display balance
+
+        // Display address
+        walletAddress.textContent = `${currentAccount.substring(0, 6)}...${currentAccount.substring(38)}`;
+
+        // Display ETH balance
         const balanceWei = await web3.eth.getBalance(currentAccount);
         const balanceEth = web3.utils.fromWei(balanceWei, 'ether');
-        walletBalance.textContent = parseFloat(balanceEth).toFixed(4);
-        
-        // Update connect button
+        let balanceText = `${parseFloat(balanceEth).toFixed(4)} ETH`;
+
+        // Display BMT balance if available
+        if (tokenContract) {
+            try {
+                const tokenBalance = await tokenContract.methods.balanceOf(currentAccount).call();
+                const tokenSymbol = await tokenContract.methods.symbol().call();
+                const tokenDecimals = await tokenContract.methods.decimals().call();
+                const formattedTokenBalance = tokenBalance / (10 ** tokenDecimals);
+                balanceText += ` | ${formattedTokenBalance} ${tokenSymbol}`;
+            } catch (err) {
+                console.warn('Error fetching token balance:', err);
+            }
+        }
+
+        walletBalance.textContent = balanceText;
+
+        // Update button
         connectBtn.innerHTML = '<i class="fas fa-check-circle"></i> Connected';
         connectBtn.disabled = true;
         connectBtn.style.background = 'var(--success)';
-        
-        // Trigger page-specific actions after wallet connection
+
+        // Trigger page-specific loads
         if (typeof loadProducts === 'function') {
-            // Buyer page - load products and stats
-            console.log('📦 Loading products after wallet connection...');
             await loadPlatformStats();
             await loadProducts();
         }
-        
+
         if (typeof checkSellerStatus === 'function') {
-            // Seller page - check seller status
-            console.log('👤 Checking seller status after wallet connection...');
             await checkSellerStatus();
         }
     }
@@ -276,20 +215,11 @@ async function updateWalletUI() {
  * Handle account change
  */
 function handleAccountsChanged(accounts) {
-    console.log('🔄 Account changed detected:', accounts);
-    
     if (accounts.length === 0) {
-        // User disconnected all accounts
-        console.log('❌ No accounts connected');
-        currentAccount = null;
-        showToast('Wallet disconnected. Please reconnect.', 'error');
-        setTimeout(() => location.reload(), 1500);
+        disconnectWallet();
     } else if (accounts[0] !== currentAccount) {
-        // User switched to a different account
-        console.log('🔄 Switching from', currentAccount, 'to', accounts[0]);
         currentAccount = accounts[0];
-        showToast(`Switched to account ${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}. Reloading...`, 'info');
-        setTimeout(() => location.reload(), 1500);
+        window.location.reload();
     }
 }
 
@@ -297,42 +227,28 @@ function handleAccountsChanged(accounts) {
  * Handle chain change
  */
 function handleChainChanged() {
-    console.log('🌐 Network changed detected');
-    showToast('Network changed. Reloading...', 'info');
-    setTimeout(() => location.reload(), 1500);
+    window.location.reload();
 }
 
 /**
- * Disconnect wallet and reload
+ * Disconnect wallet
  */
 function disconnectWallet() {
-    console.log('👋 Disconnecting wallet...');
     currentAccount = null;
     web3 = null;
     contract = null;
-    
-    // Clear cached account
+    tokenContract = null;
     localStorage.removeItem('lastConnectedAccount');
-    
-    showToast('Wallet disconnected. Refreshing page...', 'info');
-    setTimeout(() => location.reload(), 1000);
+    window.location.reload();
 }
 
 /**
- * Get current selected account from MetaMask (not cached)
+ * Get current account (non-cached)
  */
 async function getCurrentAccount() {
-    if (typeof window.ethereum === 'undefined') {
-        return null;
-    }
-    
-    try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        return accounts.length > 0 ? accounts[0] : null;
-    } catch (error) {
-        console.error('Error getting current account:', error);
-        return null;
-    }
+    if (typeof window.ethereum === 'undefined') return null;
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+    return accounts.length > 0 ? accounts[0] : null;
 }
 
 /**
@@ -341,24 +257,22 @@ async function getCurrentAccount() {
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toastMessage');
-    
+
+    if (!toast || !toastMessage) return;
+
     toastMessage.textContent = message;
-    
-    // Update icon based on type
     const icon = toast.querySelector('i');
+
     if (type === 'error') {
-        icon.className = 'fas fa-exclamation-circle';
+        if (icon) icon.className = 'fas fa-exclamation-circle';
         toast.classList.add('error');
     } else {
-        icon.className = 'fas fa-check-circle';
+        if (icon) icon.className = 'fas fa-check-circle';
         toast.classList.remove('error');
     }
-    
+
     toast.classList.add('show');
-    
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 4000);
+    setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
 /**
@@ -367,9 +281,10 @@ function showToast(message, type = 'success') {
 function showLoading(message = 'Processing...') {
     const overlay = document.getElementById('loadingOverlay');
     const loadingMessage = document.getElementById('loadingMessage');
-    
-    loadingMessage.textContent = message;
-    overlay.classList.add('active');
+    if (overlay && loadingMessage) {
+        loadingMessage.textContent = message;
+        overlay.classList.add('active');
+    }
 }
 
 /**
@@ -377,13 +292,14 @@ function showLoading(message = 'Processing...') {
  */
 function hideLoading() {
     const overlay = document.getElementById('loadingOverlay');
-    overlay.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
 }
 
 /**
- * Format ETH value for display
+ * Format ETH value
  */
 function formatEth(weiValue) {
+    if (!web3) return '0';
     return parseFloat(web3.utils.fromWei(weiValue.toString(), 'ether')).toFixed(4);
 }
 
@@ -391,11 +307,12 @@ function formatEth(weiValue) {
  * Convert ETH to Wei
  */
 function toWei(ethValue) {
+    if (!web3) return '0';
     return web3.utils.toWei(ethValue.toString(), 'ether');
 }
 
 /**
- * Get category name from enum value
+ * Get category name
  */
 function getCategoryName(categoryId) {
     return CATEGORIES[parseInt(categoryId)] || 'Other';
@@ -405,12 +322,12 @@ function getCategoryName(categoryId) {
  * Get order status name
  */
 function getOrderStatus(statusId) {
-    const statuses = ['Pending', 'Shipped', 'Delivered', 'Completed', 'Cancelled'];
+    const statuses = ['Pending', 'Shipped', 'Delivered', 'Completed', 'Cancelled', 'Disputed', 'Refunded'];
     return statuses[parseInt(statusId)] || 'Unknown';
 }
 
 /**
- * Format date from timestamp
+ * Format date
  */
 function formatDate(timestamp) {
     const date = new Date(parseInt(timestamp) * 1000);
@@ -424,29 +341,17 @@ function generateStarRating(rating) {
     const fullStars = Math.floor(rating / 100);
     const hasHalfStar = (rating % 100) >= 50;
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-    
+
     let html = '';
-    
-    // Full stars
-    for (let i = 0; i < fullStars; i++) {
-        html += '<i class="fas fa-star"></i>';
-    }
-    
-    // Half star
-    if (hasHalfStar) {
-        html += '<i class="fas fa-star-half-alt"></i>';
-    }
-    
-    // Empty stars
-    for (let i = 0; i < emptyStars; i++) {
-        html += '<i class="far fa-star"></i>';
-    }
-    
+    for (let i = 0; i < fullStars; i++) html += '<i class="fas fa-star"></i>';
+    if (hasHalfStar) html += '<i class="fas fa-star-half-alt"></i>';
+    for (let i = 0; i < emptyStars; i++) html += '<i class="far fa-star"></i>';
+
     return html;
 }
 
 /**
- * Check if user is connected
+ * Check connection
  */
 function checkConnection() {
     if (!currentAccount || !contract) {
@@ -457,50 +362,35 @@ function checkConnection() {
 }
 
 /**
- * Get default product image
+ * Get product image
  */
 function getProductImage(imageHash) {
-    // If it's a full URL, return it
-    if (imageHash.startsWith('http://') || imageHash.startsWith('https://')) {
-        return imageHash;
+    if (!imageHash) return 'https://via.placeholder.com/300x200?text=No+Image';
+    if (imageHash.startsWith('http')) return imageHash;
+    // Handle fake hashes from sample data
+    if (imageHash.startsWith('QmHash')) {
+        return `https://via.placeholder.com/300x200?text=Product+${imageHash.substring(6)}`;
     }
-    
-    // If it's an IPFS hash, construct gateway URL
-    if (imageHash.startsWith('Qm') || imageHash.startsWith('bafy')) {
-        return `https://ipfs.io/ipfs/${imageHash}`;
+    if (imageHash.startsWith('ipfs://')) {
+        return imageHash.replace('ipfs://', 'https://ipfs.io/ipfs/');
     }
-    
-    // Default placeholder
-    return `https://via.placeholder.com/300x200/667eea/ffffff?text=Product`;
+    // If it's just the hash
+    return `https://ipfs.io/ipfs/${imageHash}`;
 }
 
-// Initialize wallet connection on page load
+// Initialize on load
 document.addEventListener('DOMContentLoaded', async () => {
     const connectBtn = document.getElementById('connectWalletBtn');
-    if (connectBtn) {
-        connectBtn.addEventListener('click', connectWallet);
-    }
-    
-    // Check if user has switched accounts in MetaMask
+    if (connectBtn) connectBtn.addEventListener('click', connectWallet);
+
+    // Check for account changes
     if (typeof window.ethereum !== 'undefined') {
-        try {
-            const currentMetaMaskAccount = await getCurrentAccount();
-            
-            // If there's a cached account in localStorage but MetaMask shows a different one
-            const cachedAccount = localStorage.getItem('lastConnectedAccount');
-            
-            if (cachedAccount && currentMetaMaskAccount && cachedAccount !== currentMetaMaskAccount) {
-                console.log('⚠️ Account mismatch detected!');
-                console.log('Cached:', cachedAccount);
-                console.log('Current MetaMask:', currentMetaMaskAccount);
-                
-                // Clear the cache
-                localStorage.removeItem('lastConnectedAccount');
-                
-                showToast('MetaMask account changed. Please reconnect.', 'info');
-            }
-        } catch (error) {
-            console.error('Error checking account:', error);
+        const current = await getCurrentAccount();
+        const cached = localStorage.getItem('lastConnectedAccount');
+
+        if (cached && current && cached.toLowerCase() !== current.toLowerCase()) {
+            localStorage.removeItem('lastConnectedAccount');
+            showToast('Account changed. Please reconnect.', 'info');
         }
     }
 });

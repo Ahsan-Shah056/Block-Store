@@ -12,10 +12,16 @@ let currentEditProductId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Seller dashboard loaded');
-    
+
+    // Initialize Theme
+    initTheme();
+
     // Setup event listeners
     setupEventListeners();
-    
+
+    // Initialize Dashboard Charts
+    initDashboard();
+
     // Check if MetaMask is installed
     if (typeof window.ethereum === 'undefined') {
         console.log('❌ MetaMask not installed');
@@ -26,25 +32,171 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+        const icon = document.querySelector('#themeToggle i');
+        if (icon) icon.classList.replace('fa-moon', 'fa-sun');
+    }
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+
+    const icon = document.querySelector('#themeToggle i');
+    if (icon) {
+        if (isDark) {
+            icon.classList.replace('fa-moon', 'fa-sun');
+        } else {
+            icon.classList.replace('fa-sun', 'fa-moon');
+        }
+    }
+}
+
+let salesChartInstance = null;
+let categoryChartInstance = null;
+
+async function initDashboard() {
+    if (!currentAccount) return;
+    await loadDashboardData();
+}
+
+async function loadDashboardData() {
+    try {
+        console.log("📊 Loading dashboard data...");
+        const totalOrders = await contract.methods.orderCounter().call();
+        console.log(`Total orders in contract: ${totalOrders}`);
+        
+        const salesByMonth = new Array(12).fill(0);
+        const salesByCategory = new Array(6).fill(0); 
+        const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        let escrowAmount = BigInt(0);
+
+        // Iterate all orders
+        for (let i = 1; i <= totalOrders; i++) {
+            const order = await contract.methods.orders(i).call();
+            // console.log(`Checking Order #${i}: Seller ${order.seller} vs Current ${currentAccount}`);
+            
+            if (order.seller.toLowerCase() === currentAccount.toLowerCase()) {
+                console.log(`✅ Match found: Order #${i}`);
+                
+                // Sales stats
+                const date = new Date(parseInt(order.createdAt) * 1000);
+                const month = date.getMonth();
+                const amountEth = parseFloat(web3.utils.fromWei(order.sellerAmount, 'ether'));
+                
+                console.log(`   Date: ${date.toDateString()}, Month: ${month}, Amount: ${amountEth}`);
+                
+                salesByMonth[month] += amountEth;
+                
+                const product = await contract.methods.products(order.productId).call();
+                salesByCategory[parseInt(product.category)]++;
+
+                // Calculate Escrow
+                if (order.status !== '3' && order.status !== '4') {
+                    escrowAmount += BigInt(order.sellerAmount);
+                }
+            }
+        }
+        
+        console.log("📈 Final Sales Data:", salesByMonth);
+        console.log("🍩 Final Category Data:", salesByCategory);
+        
+        // Update Escrow UI
+        const escrowEth = web3.utils.fromWei(escrowAmount.toString(), 'ether');
+        const withdrawCard = document.querySelector('.stat-card:nth-child(4) div'); // Target the Withdraw card content
+        if (withdrawCard && !document.getElementById('escrowDisplay')) {
+            const escrowHtml = `
+                <div id="escrowDisplay" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <small style="color: var(--warning); display: block;">
+                        <i class="fas fa-lock"></i> In Escrow: ${parseFloat(escrowEth).toFixed(4)} ETH
+                    </small>
+                </div>
+            `;
+            withdrawCard.insertAdjacentHTML('beforeend', escrowHtml);
+        } else if (document.getElementById('escrowDisplay')) {
+             document.getElementById('escrowDisplay').innerHTML = `
+                <small style="color: var(--warning); display: block;">
+                    <i class="fas fa-lock"></i> In Escrow: ${parseFloat(escrowEth).toFixed(4)} ETH
+                </small>
+            `;
+        }
+        
+        // Update Sales Chart
+        const salesCtx = document.getElementById('salesChart');
+        if (salesCtx) {
+            if (salesChartInstance) salesChartInstance.destroy();
+            
+            salesChartInstance = new Chart(salesCtx, {
+                type: 'line',
+                data: {
+                    labels: monthLabels,
+                    datasets: [{
+                        label: 'Sales (ETH)',
+                        data: salesByMonth,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // Update Category Chart
+        const categoryCtx = document.getElementById('categoryChart');
+        if (categoryCtx) {
+            if (categoryChartInstance) categoryChartInstance.destroy();
+
+            categoryChartInstance = new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Electronics', 'Clothing', 'Books', 'Home', 'Sports', 'Other'],
+                    datasets: [{
+                        data: salesByCategory,
+                        backgroundColor: ['#4f46e5', '#ec4899', '#10b981', '#f59e0b', '#3b82f6', '#6b7280']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+        
+    } catch (error) {
+        console.error("Error loading dashboard data:", error);
+    }
+}
+
 function setupEventListeners() {
     // Registration
     const registerBtn = document.getElementById('registerSellerBtn');
     if (registerBtn) {
         registerBtn.addEventListener('click', registerSeller);
     }
-    
+
     // Withdraw
     const withdrawBtn = document.getElementById('withdrawBtn');
     if (withdrawBtn) {
         withdrawBtn.addEventListener('click', withdrawEarnings);
     }
-    
+
     // Save product
     const saveProductBtn = document.getElementById('saveProductBtn');
     if (saveProductBtn) {
         saveProductBtn.addEventListener('click', saveProduct);
     }
-    
+
     // Tabs
     const tabBtns = document.querySelectorAll('.tab-btn');
     tabBtns.forEach(btn => {
@@ -53,6 +205,12 @@ function setupEventListeners() {
             switchTab(tabName);
         });
     });
+
+    // Theme Toggle
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+    }
 }
 
 function switchTab(tabName) {
@@ -61,12 +219,12 @@ function switchTab(tabName) {
         btn.classList.remove('active');
     });
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-    
+
     // Update content
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.remove('active');
     });
-    
+
     if (tabName === 'products') {
         document.getElementById('productsTab').classList.add('active');
     } else if (tabName === 'orders') {
@@ -80,7 +238,7 @@ function switchTab(tabName) {
 async function checkSellerStatus() {
     try {
         const isRegistered = await contract.methods.isRegisteredSeller(currentAccount).call();
-        
+
         if (isRegistered) {
             // Load seller info
             sellerInfo = await contract.methods.sellers(currentAccount).call();
@@ -109,26 +267,26 @@ function showDashboard() {
 
 async function registerSeller() {
     if (!checkConnection()) return;
-    
+
     const storeName = document.getElementById('storeName').value.trim();
-    
+
     if (!storeName) {
         showToast('Please enter a store name', 'error');
         return;
     }
-    
+
     try {
         showLoading('Registering as seller...');
-        
+
         await contract.methods.registerSeller(storeName)
             .send({ from: currentAccount });
-        
+
         hideLoading();
         showToast('Successfully registered as seller!', 'success');
-        
+
         // Reload page to show dashboard
         setTimeout(() => location.reload(), 2000);
-        
+
     } catch (error) {
         console.error('Error registering seller:', error);
         hideLoading();
@@ -142,25 +300,35 @@ async function loadSellerData() {
     try {
         // Update seller name
         document.getElementById('sellerName').textContent = sellerInfo.name;
-        
+
         // Update statistics
-        document.getElementById('sellerTotalEarnings').textContent = 
+        document.getElementById('sellerTotalEarnings').textContent =
             formatEth(sellerInfo.totalEarnings);
-        document.getElementById('sellerPendingWithdrawal').textContent = 
+        document.getElementById('sellerPendingWithdrawal').textContent =
             formatEth(sellerInfo.pendingWithdrawal);
-        document.getElementById('sellerTotalSales').textContent = 
+        document.getElementById('sellerTotalSales').textContent =
             sellerInfo.totalSales;
-        
+
+        // Display seller level/reputation
+        const levelNames = ['New Seller', 'Verified Seller', 'Top Seller', 'Power Seller'];
+        const sellerLevelElement = document.getElementById('sellerLevel');
+        if (sellerLevelElement) {
+            sellerLevelElement.textContent = levelNames[parseInt(sellerInfo.sellerLevel) || 0];
+        }
+
         // Load products
         await loadSellerProducts();
-        
+
         // Disable withdraw button if no funds
         const withdrawBtn = document.getElementById('withdrawBtn');
         if (sellerInfo.pendingWithdrawal === '0') {
             withdrawBtn.disabled = true;
             withdrawBtn.innerHTML = '<i class="fas fa-ban"></i> No Funds';
         }
-        
+
+        // Load Dashboard Charts
+        await loadDashboardData();
+
     } catch (error) {
         console.error('Error loading seller data:', error);
         showToast('Failed to load seller data', 'error');
@@ -170,9 +338,9 @@ async function loadSellerData() {
 async function loadSellerProducts() {
     try {
         const productIds = await contract.methods.getSellerProducts(currentAccount).call();
-        
+
         document.getElementById('sellerTotalProducts').textContent = productIds.length;
-        
+
         if (productIds.length === 0) {
             document.getElementById('productsTableBody').innerHTML = `
                 <tr>
@@ -184,14 +352,14 @@ async function loadSellerProducts() {
             `;
             return;
         }
-        
+
         sellerProducts = [];
         const rows = [];
-        
+
         for (const productId of productIds) {
             const product = await contract.methods.products(productId).call();
             sellerProducts.push(product);
-            
+
             rows.push(`
                 <tr>
                     <td><strong>#${product.id}</strong></td>
@@ -199,7 +367,7 @@ async function loadSellerProducts() {
                         <img src="${getProductImage(product.imageHash)}" 
                              alt="${product.name}" 
                              class="product-table-image"
-                             onerror="this.src='https://via.placeholder.com/60/667eea/ffffff?text=Product'">
+                             onerror="this.onerror=null; this.src='images/product-placeholder.png'">
                     </td>
                     <td><strong>${product.name}</strong></td>
                     <td>${formatEth(product.price)}</td>
@@ -231,9 +399,9 @@ async function loadSellerProducts() {
                 </tr>
             `);
         }
-        
+
         document.getElementById('productsTableBody').innerHTML = rows.join('');
-        
+
     } catch (error) {
         console.error('Error loading seller products:', error);
         showToast('Failed to load products', 'error');
@@ -246,26 +414,26 @@ function openAddProductModal() {
     currentEditProductId = null;
     document.getElementById('productModalTitle').innerHTML = '<i class="fas fa-plus"></i> Add New Product';
     document.getElementById('productForm').reset();
-    
+
     // Reset image inputs
     document.getElementById('imageFileInput').value = '';
     document.getElementById('productImageUrl').value = '';
     document.getElementById('productImage').value = '';
     document.getElementById('imageUrlContainer').style.display = 'none';
-    
+
     // Hide preview
     document.getElementById('previewImg').style.display = 'none';
     document.getElementById('removeImageBtn').style.display = 'none';
-    
+
     document.getElementById('productModal').classList.add('active');
 }
 
 function editProduct(productId) {
     currentEditProductId = productId;
     const product = sellerProducts.find(p => p.id == productId);
-    
+
     if (!product) return;
-    
+
     document.getElementById('productModalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Product';
     document.getElementById('productName').value = product.name;
     document.getElementById('productDescription').value = product.description;
@@ -273,21 +441,21 @@ function editProduct(productId) {
     document.getElementById('productPrice').value = formatEth(product.price);
     document.getElementById('productStock').value = product.stock;
     document.getElementById('productImage').value = product.imageHash;
-    
+
     // Reset file input (can't edit uploaded files directly)
     document.getElementById('imageFileInput').value = '';
-    
+
     // If it's a URL, show in URL input
     if (product.imageHash && !product.imageHash.startsWith('data:image')) {
         document.getElementById('productImageUrl').value = product.imageHash;
     }
-    
+
     // Show preview
     const preview = document.getElementById('previewImg');
     preview.src = getProductImage(product.imageHash);
     preview.style.display = 'block';
     document.getElementById('removeImageBtn').style.display = 'block';
-    
+
     document.getElementById('productModal').classList.add('active');
 }
 
@@ -298,37 +466,42 @@ function closeProductModal() {
 
 async function saveProduct() {
     if (!checkConnection()) return;
-    
+
     const name = document.getElementById('productName').value.trim();
     const description = document.getElementById('productDescription').value.trim();
     const category = document.getElementById('productCategory').value;
     const priceEth = document.getElementById('productPrice').value;
     const stock = document.getElementById('productStock').value;
-    const imageHash = document.getElementById('productImage').value.trim();
-    
+    let imageHash = document.getElementById('productImage').value.trim();
+
+    // Use placeholder if no image provided
+    if (!imageHash) {
+        imageHash = 'images/product-placeholder.png';
+    }
+
     // Validation
-    if (!name || !description || !priceEth || !stock || !imageHash) {
-        showToast('Please fill in all fields', 'error');
+    if (!name || !description || !priceEth || !stock) {
+        showToast('Please fill in all required fields', 'error');
         return;
     }
-    
+
     if (parseFloat(priceEth) <= 0) {
         showToast('Price must be greater than 0', 'error');
         return;
     }
-    
+
     if (parseInt(stock) <= 0) {
         showToast('Stock must be greater than 0', 'error');
         return;
     }
-    
+
     try {
         const priceWei = toWei(priceEth);
-        
+
         if (currentEditProductId) {
             // Update existing product
             showLoading('Updating product...');
-            
+
             await contract.methods.updateProduct(
                 currentEditProductId,
                 name,
@@ -337,12 +510,12 @@ async function saveProduct() {
                 priceWei,
                 stock
             ).send({ from: currentAccount });
-            
+
             showToast('Product updated successfully!', 'success');
         } else {
             // Add new product
             showLoading('Adding product...');
-            
+
             await contract.methods.addProduct(
                 name,
                 description,
@@ -351,16 +524,16 @@ async function saveProduct() {
                 stock,
                 category
             ).send({ from: currentAccount });
-            
+
             showToast('Product added successfully!', 'success');
         }
-        
+
         hideLoading();
         closeProductModal();
-        
+
         // Reload products
         await loadSellerData();
-        
+
     } catch (error) {
         console.error('Error saving product:', error);
         hideLoading();
@@ -370,19 +543,19 @@ async function saveProduct() {
 
 async function toggleProduct(productId) {
     if (!checkConnection()) return;
-    
+
     try {
         showLoading('Updating product status...');
-        
+
         await contract.methods.toggleProductStatus(productId)
             .send({ from: currentAccount });
-        
+
         hideLoading();
         showToast('Product status updated!', 'success');
-        
+
         // Reload products
         await loadSellerData();
-        
+
     } catch (error) {
         console.error('Error toggling product:', error);
         hideLoading();
@@ -393,28 +566,29 @@ async function toggleProduct(productId) {
 // ==================== ORDERS MANAGEMENT ====================
 
 async function loadPendingOrders() {
+    if (!checkConnection()) return;
+
     try {
         showLoading('Loading pending orders...');
-        
-        // Get all orders and filter for this seller
+
         const totalOrders = await contract.methods.orderCounter().call();
         const orders = [];
-        
+
         for (let i = 1; i <= totalOrders; i++) {
             const order = await contract.methods.orders(i).call();
-            
+
             // Only show pending orders for this seller
-            if (order.seller.toLowerCase() === currentAccount.toLowerCase() && 
+            if (order.seller.toLowerCase() === currentAccount.toLowerCase() &&
                 order.status === '0') {
                 const product = await contract.methods.products(order.productId).call();
                 orders.push({ orderId: i, order, product });
             }
         }
-        
+
         hideLoading();
-        
+
         const ordersList = document.getElementById('pendingOrdersList');
-        
+
         if (orders.length === 0) {
             ordersList.innerHTML = `
                 <div class="empty-state">
@@ -424,7 +598,7 @@ async function loadPendingOrders() {
             `;
             return;
         }
-        
+
         ordersList.innerHTML = orders.map(({ orderId, order, product }) => `
             <div class="order-card">
                 <div class="order-header">
@@ -435,18 +609,12 @@ async function loadPendingOrders() {
                     <img src="${getProductImage(product.imageHash)}" 
                          alt="${product.name}" 
                          class="order-product-image"
-                         onerror="this.src='https://via.placeholder.com/80/667eea/ffffff?text=Product'">
+                         onerror="this.onerror=null; this.src='images/product-placeholder.png'">
                     <div style="flex: 1;">
                         <h4>${product.name}</h4>
                         <p>Quantity: ${order.quantity}</p>
                         <p style="color: var(--primary); font-weight: 600;">
                             Your Earning: ${formatEth(order.sellerAmount)} ETH
-                        </p>
-                        <p style="font-size: 0.85rem; color: var(--gray);">
-                            Buyer: ${order.buyer.substring(0, 10)}...${order.buyer.substring(38)}
-                        </p>
-                        <p style="font-size: 0.85rem; color: var(--gray);">
-                            Ordered: ${formatDate(order.createdAt)}
                         </p>
                     </div>
                 </div>
@@ -457,7 +625,7 @@ async function loadPendingOrders() {
                 </div>
             </div>
         `).join('');
-        
+
     } catch (error) {
         console.error('Error loading pending orders:', error);
         hideLoading();
@@ -467,19 +635,19 @@ async function loadPendingOrders() {
 
 async function markAsShipped(orderId) {
     if (!checkConnection()) return;
-    
+
     try {
         showLoading('Marking order as shipped...');
-        
+
         await contract.methods.markOrderAsShipped(orderId)
             .send({ from: currentAccount });
-        
+
         hideLoading();
         showToast('Order marked as shipped!', 'success');
-        
+
         // Reload orders
         await loadPendingOrders();
-        
+
     } catch (error) {
         console.error('Error marking order as shipped:', error);
         hideLoading();
@@ -491,26 +659,26 @@ async function markAsShipped(orderId) {
 
 async function withdrawEarnings() {
     if (!checkConnection()) return;
-    
+
     if (sellerInfo.pendingWithdrawal === '0') {
         showToast('No funds available to withdraw', 'error');
         return;
     }
-    
+
     try {
         showLoading('Withdrawing earnings...');
-        
+
         await contract.methods.withdrawEarnings()
             .send({ from: currentAccount });
-        
+
         hideLoading();
         showToast('Earnings withdrawn successfully!', 'success');
-        
+
         // Reload seller data
         sellerInfo = await contract.methods.sellers(currentAccount).call();
         await loadSellerData();
         await updateWalletUI();
-        
+
     } catch (error) {
         console.error('Error withdrawing earnings:', error);
         hideLoading();
@@ -525,50 +693,50 @@ async function withdrawEarnings() {
  */
 function handleImageUpload(event) {
     const file = event.target.files[0];
-    
+
     if (!file) return;
-    
+
     // Validate file type
     if (!file.type.startsWith('image/')) {
         showToast('Please select a valid image file (JPG, PNG, GIF)', 'error');
         return;
     }
-    
+
     // Validate file size (2MB max)
     const maxSize = 2 * 1024 * 1024; // 2MB in bytes
     if (file.size > maxSize) {
         showToast('Image size must be less than 2MB', 'error');
         return;
     }
-    
+
     // Show loading
     const preview = document.getElementById('previewImg');
     preview.style.display = 'none';
-    
+
     // Read file as base64
     const reader = new FileReader();
-    
-    reader.onload = function(e) {
+
+    reader.onload = function (e) {
         const base64Image = e.target.result;
-        
+
         // Store in hidden input
         document.getElementById('productImage').value = base64Image;
-        
+
         // Show preview
         preview.src = base64Image;
         preview.style.display = 'block';
         document.getElementById('removeImageBtn').style.display = 'block';
-        
+
         // Hide URL input if shown
         document.getElementById('imageUrlContainer').style.display = 'none';
-        
+
         showToast('Image uploaded successfully!', 'success');
     };
-    
-    reader.onerror = function() {
+
+    reader.onerror = function () {
         showToast('Failed to read image file', 'error');
     };
-    
+
     reader.readAsDataURL(file);
 }
 
@@ -578,7 +746,7 @@ function handleImageUpload(event) {
 function toggleImageUrlInput() {
     const urlContainer = document.getElementById('imageUrlContainer');
     const isVisible = urlContainer.style.display !== 'none';
-    
+
     if (isVisible) {
         urlContainer.style.display = 'none';
     } else {
@@ -592,26 +760,26 @@ function toggleImageUrlInput() {
  */
 function previewImageUrl() {
     const url = document.getElementById('productImageUrl').value.trim();
-    
+
     if (!url) {
         showToast('Please enter an image URL', 'error');
         return;
     }
-    
+
     const preview = document.getElementById('previewImg');
-    
+
     // Store URL in hidden input
     document.getElementById('productImage').value = url;
-    
+
     // Show preview
     preview.src = getProductImage(url);
     preview.style.display = 'block';
     document.getElementById('removeImageBtn').style.display = 'block';
-    
+
     preview.onload = () => {
         showToast('Image preview loaded!', 'success');
     };
-    
+
     preview.onerror = () => {
         preview.style.display = 'none';
         showToast('Failed to load image from URL. Please check the URL.', 'error');
@@ -627,23 +795,72 @@ function removeImage() {
     if (fileInput) {
         fileInput.value = '';
     }
-    
+
     // Clear URL input
     const urlInput = document.getElementById('productImageUrl');
     if (urlInput) {
         urlInput.value = '';
     }
-    
+
     // Clear hidden input
     document.getElementById('productImage').value = '';
-    
+
     // Hide preview
     const preview = document.getElementById('previewImg');
     preview.src = '';
     preview.style.display = 'none';
     document.getElementById('removeImageBtn').style.display = 'none';
-    
+
     showToast('Image removed', 'info');
+}
+
+// ==================== SELLER REPUTATION ====================
+
+async function upgradeSellerLevel() {
+    if (!checkConnection()) return;
+
+    try {
+        showLoading('Updating seller level...');
+
+        await contract.methods.updateSellerLevel()
+            .send({ from: currentAccount });
+
+        hideLoading();
+        showToast('Seller level updated successfully!', 'success');
+
+        // Reload seller data
+        sellerInfo = await contract.methods.sellers(currentAccount).call();
+        await loadSellerData();
+
+    } catch (error) {
+        console.error('Error updating seller level:', error);
+        hideLoading();
+        showToast('Failed to update seller level', 'error');
+    }
+}
+
+// ==================== AUTO-RELEASE ESCROW ====================
+
+async function autoReleaseFunds(orderId) {
+    if (!checkConnection()) return;
+
+    try {
+        showLoading('Auto-releasing funds...');
+
+        await contract.methods.autoReleaseFunds(orderId)
+            .send({ from: currentAccount });
+
+        hideLoading();
+        showToast('Funds auto-released successfully!', 'success');
+
+        // Reload pending orders
+        await loadPendingOrders();
+
+    } catch (error) {
+        console.error('Error auto-releasing funds:', error);
+        hideLoading();
+        showToast('Failed to auto-release funds. Order may not be eligible yet.', 'error');
+    }
 }
 
 // Close modals on outside click
