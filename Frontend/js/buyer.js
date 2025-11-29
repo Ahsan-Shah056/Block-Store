@@ -506,95 +506,89 @@ async function openOrders() {
   try {
     showLoading("Loading your orders...");
 
-    const orderIds = await contract.methods
-      .getBuyerOrders(currentAccount)
-      .call();
+    const orderIds = await contract.methods.getBuyerOrders(currentAccount).call();
+    const tableBody = document.getElementById("ordersTableBody");
+    
+    if (!tableBody) return; // Safety check
 
     if (orderIds.length === 0) {
-      document.getElementById("ordersList").innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-receipt"></i>
-                    <p>You haven't made any orders yet</p>
-                </div>
+      tableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center" style="padding: 2rem;">
+                        <div class="empty-state">
+                            <i class="fas fa-receipt"></i>
+                            <p>You haven't made any orders yet</p>
+                        </div>
+                    </td>
+                </tr>
             `;
     } else {
-      const ordersHtml = [];
+      tableBody.innerHTML = ''; // Clear loading state
 
-      for (const orderId of orderIds) {
+      // Reverse loop to show newest first
+      for (let i = orderIds.length - 1; i >= 0; i--) {
+        const orderId = orderIds[i];
         const order = await contract.methods.orders(orderId).call();
         const product = await contract.methods.products(order.productId).call();
+        
+        const statusClass = getStatusClass(order.status);
+        const statusText = getOrderStatus(order.status);
+        const date = formatDate(order.createdAt);
+        const totalEth = formatEth(order.totalPrice);
 
-        ordersHtml.push(`
-                    <div class="order-card">
-                        <div class="order-header">
-                            <span class="order-id">Order #${orderId}</span>
-                            <span class="order-status status-${getOrderStatus(
-                              order.status
-                            ).toLowerCase()}">
-                                ${getOrderStatus(order.status)}
-                            </span>
-                        </div>
-                        <div class="order-product">
-                            <img src="${getProductImage(
-                              product.imageHash
-                            )}" alt="${product.name}" 
-                                 class="order-product-image"
-                                 onerror="this.onerror=null; this.src='images/product-placeholder.png'">
-                            <div>
-                                <h4>${product.name}</h4>
-                                <p>Quantity: ${order.quantity}</p>
-                                <p style="color: var(--primary); font-weight: 600;">
-                                    Total: ${formatEth(order.totalPrice)} ETH
-                                </p>
-                                <p style="font-size: 0.85rem; color: var(--gray);">
-                                    Ordered on: ${formatDate(order.createdAt)}
-                                </p>
-                            </div>
-                        </div>
-                        <div class="order-actions" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-                            <button class="btn btn-secondary btn-small track-order-btn" data-id="${orderId}" data-status="${
-          order.status
-        }">
-                                <i class="fas fa-map-marker-alt"></i> Track Order
-                            </button>
-                            ${
-                              order.status === "1"
-                                ? `
-                                <button class="btn btn-success btn-small" onclick="confirmDelivery(${orderId})">
-                                    <i class="fas fa-check"></i> Confirm Delivery
-                                </button>
-                            `
-                                : ""
-                            }
-                            ${
-                              (order.status === "0" || order.status === "1") &&
-                              !order.disputed
-                                ? `
-                                <button class="btn btn-warning btn-small" onclick="raiseDispute(${orderId})">
-                                    <i class="fas fa-exclamation-triangle"></i> Raise Dispute
-                                </button>
-                            `
-                                : ""
-                            }
-                        </div>
+        // Actions
+        let actions = `
+            <button class="btn btn-secondary btn-small track-order-btn" onclick="showTransactionTracker(${orderId}, '${order.status}')" title="Track Order">
+                <i class="fas fa-map-marker-alt"></i>
+            </button>
+        `;
+
+        if (order.status === "1") { // Shipped
+            actions += `
+                <button class="btn btn-success btn-small" onclick="confirmDelivery(${orderId})" title="Confirm Delivery">
+                    <i class="fas fa-check"></i>
+                </button>
+            `;
+        }
+
+        if ((order.status === "0" || order.status === "1") && !order.disputed) {
+            actions += `
+                <button class="btn btn-warning btn-small" onclick="raiseDispute(${orderId})" title="Raise Dispute">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </button>
+            `;
+        }
+
+        const row = `
+            <tr>
+                <td>#${orderId}</td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${getProductImage(product.imageHash)}" 
+                             alt="${product.name}" 
+                             class="order-product-image"
+                             style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;"
+                             onerror="this.onerror=null; this.src='images/product-placeholder.png'">
+                        <span style="font-weight: 600;">${product.name}</span>
                     </div>
-                `);
+                </td>
+                <td>${product.seller.substring(0, 6)}...</td>
+                <td>${order.quantity}</td>
+                <td>${totalEth} ETH</td>
+                <td>${date}</td>
+                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                <td>
+                    <div style="display: flex; gap: 5px;">
+                        ${actions}
+                    </div>
+                </td>
+            </tr>
+        `;
+        tableBody.innerHTML += row;
       }
-
-      document.getElementById("ordersList").innerHTML = ordersHtml.join("");
-
-      // Add event listeners for tracking
-      document.querySelectorAll(".track-order-btn").forEach((btn) => {
-        btn.addEventListener("click", (e) => {
-          const orderId = e.target.getAttribute("data-id");
-          const status = e.target.getAttribute("data-status");
-          showTransactionTracker(orderId, status);
-        });
-      });
     }
 
     hideLoading();
-    // Show the orders modal
     document.getElementById("ordersModal").classList.add("active");
   } catch (error) {
     console.error("Error loading orders:", error);
@@ -602,6 +596,7 @@ async function openOrders() {
     showToast("Failed to load orders", "error");
   }
 }
+
 
 function showTransactionTracker(orderId, status) {
   const tracker = document.getElementById("transactionTracker");
@@ -637,58 +632,315 @@ async function generateReceipt(orderId) {
   try {
     const order = await contract.methods.orders(orderId).call();
     const product = await contract.methods.products(order.productId).call();
-
+    
+    // Calculate values
+    const priceEth = parseFloat(web3.utils.fromWei(product.price, 'ether'));
+    const totalEth = parseFloat(web3.utils.fromWei(order.totalPrice, 'ether'));
+    const subtotal = priceEth * order.quantity;
+    const discount = subtotal - totalEth;
+    
     const receiptWindow = window.open("", "_blank");
     receiptWindow.document.write(`
+            <!DOCTYPE html>
             <html>
             <head>
                 <title>Receipt #${orderId}</title>
+                <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
                 <style>
-                    body { font-family: 'Courier New', monospace; padding: 40px; max-width: 800px; margin: 0 auto; }
-                    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
-                    .row { display: flex; justify-content: space-between; margin-bottom: 10px; }
-                    .total { font-weight: bold; font-size: 1.2em; border-top: 1px solid #000; padding-top: 10px; margin-top: 20px; }
-                    .footer { margin-top: 50px; text-align: center; font-size: 0.8em; color: #666; }
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+                    
+                    :root {
+                        --primary: #4f46e5;
+                        --text-dark: #111827;
+                        --text-gray: #6b7280;
+                        --bg-light: #f9fafb;
+                        --border: #e5e7eb;
+                    }
+                    
+                    body {
+                        font-family: 'Inter', sans-serif;
+                        background-color: #f3f4f6;
+                        margin: 0;
+                        padding: 40px;
+                        color: var(--text-dark);
+                        -webkit-print-color-adjust: exact;
+                    }
+                    
+                    .receipt-card {
+                        background: white;
+                        max-width: 800px;
+                        margin: 0 auto;
+                        padding: 40px;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+                    }
+                    
+                    .header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: flex-start;
+                        margin-bottom: 40px;
+                        padding-bottom: 20px;
+                        border-bottom: 2px solid var(--bg-light);
+                    }
+                    
+                    .brand {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                    }
+                    
+                    .brand-icon {
+                        width: 40px;
+                        height: 40px;
+                        background: var(--primary);
+                        border-radius: 8px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 20px;
+                    }
+                    
+                    .brand-name {
+                        font-size: 24px;
+                        font-weight: 800;
+                        color: var(--text-dark);
+                        letter-spacing: -0.5px;
+                    }
+                    
+                    .receipt-meta {
+                        text-align: right;
+                    }
+                    
+                    .receipt-label {
+                        font-size: 12px;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                        color: var(--text-gray);
+                        font-weight: 600;
+                        margin-bottom: 4px;
+                    }
+                    
+                    .receipt-id {
+                        font-size: 18px;
+                        font-weight: 700;
+                        color: var(--text-dark);
+                    }
+                    
+                    .info-grid {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 40px;
+                        margin-bottom: 40px;
+                    }
+                    
+                    .info-group h3 {
+                        font-size: 11px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        color: var(--text-gray);
+                        margin-bottom: 8px;
+                    }
+                    
+                    .info-group p {
+                        margin: 0;
+                        font-size: 14px;
+                        font-weight: 500;
+                        line-height: 1.5;
+                    }
+                    
+                    .address-hash {
+                        font-family: 'Monaco', 'Consolas', monospace;
+                        font-size: 12px;
+                        color: var(--text-gray);
+                        background: var(--bg-light);
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                        display: inline-block;
+                    }
+                    
+                    .items-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 30px;
+                    }
+                    
+                    .items-table th {
+                        text-align: left;
+                        padding: 12px 0;
+                        font-size: 12px;
+                        text-transform: uppercase;
+                        color: var(--text-gray);
+                        border-bottom: 2px solid var(--border);
+                    }
+                    
+                    .items-table td {
+                        padding: 20px 0;
+                        border-bottom: 1px solid var(--border);
+                        font-size: 14px;
+                    }
+                    
+                    .product-cell {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                    }
+                    
+                    .product-thumb {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 6px;
+                        object-fit: cover;
+                        background: var(--bg-light);
+                    }
+                    
+                    .text-right { text-align: right; }
+                    
+                    .summary-section {
+                        display: flex;
+                        justify-content: flex-end;
+                        margin-bottom: 40px;
+                    }
+                    
+                    .summary-box {
+                        width: 300px;
+                    }
+                    
+                    .summary-row {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 8px 0;
+                        font-size: 14px;
+                        color: var(--text-gray);
+                    }
+                    
+                    .summary-row.total {
+                        border-top: 2px solid var(--text-dark);
+                        margin-top: 12px;
+                        padding-top: 16px;
+                        font-weight: 800;
+                        font-size: 20px;
+                        color: var(--text-dark);
+                    }
+                    
+                    .discount { color: #10b981; }
+                    
+                    .footer {
+                        text-align: center;
+                        margin-top: 60px;
+                        padding-top: 20px;
+                        border-top: 1px solid var(--border);
+                        color: var(--text-gray);
+                        font-size: 12px;
+                    }
+                    
+                    .status-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        padding: 4px 12px;
+                        border-radius: 20px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        background: var(--bg-light);
+                        color: var(--text-dark);
+                    }
+                    
+                    @media print {
+                        body { background: white; padding: 0; }
+                        .receipt-card { box-shadow: none; padding: 20px; }
+                    }
                 </style>
             </head>
             <body>
-                <div class="header">
-                    <h1>BLOCKCHAIN MARKETPLACE</h1>
-                    <h2>Receipt for Order #${orderId}</h2>
-                    <p>Date: ${formatDate(order.createdAt)}</p>
+                <div class="receipt-card">
+                    <div class="header">
+                        <div class="brand">
+                            <div class="brand-icon"><i class="fas fa-cube"></i></div>
+                            <div class="brand-name">BlockMarket</div>
+                        </div>
+                        <div class="receipt-meta">
+                            <div class="receipt-label">Receipt</div>
+                            <div class="receipt-id">#${orderId}</div>
+                            <div class="status-badge" style="margin-top: 8px;">
+                                ${getOrderStatus(order.status)}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-grid">
+                        <div class="info-group">
+                            <h3>Billed To</h3>
+                            <p>Ethereum Wallet</p>
+                            <span class="address-hash">${order.buyer}</span>
+                        </div>
+                        <div class="info-group">
+                            <h3>Order Details</h3>
+                            <p>Date: ${formatDate(order.createdAt)}</p>
+                            <p>Seller: ${product.seller.substring(0, 8)}...</p>
+                        </div>
+                    </div>
+                    
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th width="50%">Item</th>
+                                <th width="15%" class="text-right">Qty</th>
+                                <th width="20%" class="text-right">Price</th>
+                                <th width="15%" class="text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="product-cell">
+                                        <img src="${getProductImage(product.imageHash)}" class="product-thumb" onerror="this.style.display='none'">
+                                        <div>
+                                            <strong>${product.name}</strong>
+                                            <div style="font-size: 12px; color: #6b7280;">Category: ${getCategoryName(product.category)}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-right">${order.quantity}</td>
+                                <td class="text-right">${priceEth.toFixed(4)} ETH</td>
+                                <td class="text-right">${subtotal.toFixed(4)} ETH</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="summary-section">
+                        <div class="summary-box">
+                            <div class="summary-row">
+                                <span>Subtotal</span>
+                                <span>${subtotal.toFixed(4)} ETH</span>
+                            </div>
+                            ${discount > 0.0001 ? `
+                            <div class="summary-row discount">
+                                <span>VIP Discount</span>
+                                <span>-${discount.toFixed(4)} ETH</span>
+                            </div>
+                            ` : ''}
+                            <div class="summary-row">
+                                <span>Platform Fee (Included)</span>
+                                <span>${(totalEth * 0.02).toFixed(4)} ETH</span>
+                            </div>
+                            <div class="summary-row total">
+                                <span>Total Paid</span>
+                                <span>${totalEth.toFixed(4)} ETH</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="footer">
+                        <p>Thank you for shopping with BlockMarket!</p>
+                        <p style="margin-top: 5px;">This is a blockchain-verified transaction.</p>
+                        <p style="font-family: monospace; margin-top: 5px;">Timestamp: ${new Date().toISOString()}</p>
+                    </div>
                 </div>
-                <div class="content">
-                    <div class="row">
-                        <span><strong>Product:</strong></span>
-                        <span>${product.name}</span>
-                    </div>
-                    <div class="row">
-                        <span><strong>Seller:</strong></span>
-                        <span>${product.seller}</span>
-                    </div>
-                    <div class="row">
-                        <span><strong>Buyer:</strong></span>
-                        <span>${order.buyer}</span>
-                    </div>
-                    <hr>
-                    <div class="row">
-                        <span>Price per unit:</span>
-                        <span>${formatEth(product.price)} ETH</span>
-                    </div>
-                    <div class="row">
-                        <span>Quantity:</span>
-                        <span>${order.quantity}</span>
-                    </div>
-                    <div class="row total">
-                        <span>TOTAL PAID:</span>
-                        <span>${formatEth(order.totalPrice)} ETH</span>
-                    </div>
-                </div>
-                <div class="footer">
-                    <p>Thank you for shopping with us!</p>
-                    <p>Transaction confirmed on Ethereum Blockchain</p>
-                </div>
-                <script>window.print();</script>
+                <script>
+                    // Auto-print after images load
+                    window.onload = () => { setTimeout(() => window.print(), 500); };
+                </script>
             </body>
             </html>
         `);

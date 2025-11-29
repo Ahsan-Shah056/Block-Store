@@ -327,6 +327,23 @@ function getOrderStatus(statusId) {
 }
 
 /**
+ * Get status class for styling
+ */
+function getStatusClass(statusId) {
+    const status = parseInt(statusId);
+    switch (status) {
+        case 0: return 'status-pending';
+        case 1: return 'status-shipped';
+        case 2: return 'status-delivered';
+        case 3: return 'status-completed';
+        case 4: return 'status-cancelled';
+        case 5: return 'status-disputed';
+        case 6: return 'status-refunded';
+        default: return '';
+    }
+}
+
+/**
  * Format date
  */
 function formatDate(timestamp) {

@@ -76,10 +76,11 @@ async function loadDashboardData() {
         
         let escrowAmount = BigInt(0);
 
+        const productSales = {}; // Map: productId -> {name, sales}
+
         // Iterate all orders
         for (let i = 1; i <= totalOrders; i++) {
             const order = await contract.methods.orders(i).call();
-            // console.log(`Checking Order #${i}: Seller ${order.seller} vs Current ${currentAccount}`);
             
             if (order.seller.toLowerCase() === currentAccount.toLowerCase()) {
                 console.log(`✅ Match found: Order #${i}`);
@@ -89,12 +90,14 @@ async function loadDashboardData() {
                 const month = date.getMonth();
                 const amountEth = parseFloat(web3.utils.fromWei(order.sellerAmount, 'ether'));
                 
-                console.log(`   Date: ${date.toDateString()}, Month: ${month}, Amount: ${amountEth}`);
-                
                 salesByMonth[month] += amountEth;
                 
+                // Top Products Logic
                 const product = await contract.methods.products(order.productId).call();
-                salesByCategory[parseInt(product.category)]++;
+                if (!productSales[product.id]) {
+                    productSales[product.id] = { name: product.name, sales: 0 };
+                }
+                productSales[product.id].sales += parseInt(order.quantity); // Count units sold
 
                 // Calculate Escrow
                 if (order.status !== '3' && order.status !== '4') {
@@ -103,45 +106,25 @@ async function loadDashboardData() {
             }
         }
         
-        console.log("📈 Final Sales Data:", salesByMonth);
-        console.log("🍩 Final Category Data:", salesByCategory);
-        
-        // Update Escrow UI
-        const escrowEth = web3.utils.fromWei(escrowAmount.toString(), 'ether');
-        const withdrawCard = document.querySelector('.stat-card:nth-child(4) div'); // Target the Withdraw card content
-        if (withdrawCard && !document.getElementById('escrowDisplay')) {
-            const escrowHtml = `
-                <div id="escrowDisplay" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <small style="color: var(--warning); display: block;">
-                        <i class="fas fa-lock"></i> In Escrow: ${parseFloat(escrowEth).toFixed(4)} ETH
-                    </small>
-                </div>
-            `;
-            withdrawCard.insertAdjacentHTML('beforeend', escrowHtml);
-        } else if (document.getElementById('escrowDisplay')) {
-             document.getElementById('escrowDisplay').innerHTML = `
-                <small style="color: var(--warning); display: block;">
-                    <i class="fas fa-lock"></i> In Escrow: ${parseFloat(escrowEth).toFixed(4)} ETH
-                </small>
-            `;
-        }
-        
-        // Update Sales Chart
+        // Prepare Top Products Data
+        const sortedProducts = Object.values(productSales).sort((a, b) => b.sales - a.sales).slice(0, 5);
+        const topProductLabels = sortedProducts.map(p => p.name);
+        const topProductData = sortedProducts.map(p => p.sales);
+
+        // Update Sales Chart (Bar Chart is better for monthly revenue)
         const salesCtx = document.getElementById('salesChart');
         if (salesCtx) {
             if (salesChartInstance) salesChartInstance.destroy();
             
             salesChartInstance = new Chart(salesCtx, {
-                type: 'line',
+                type: 'bar', // Changed to Bar
                 data: {
                     labels: monthLabels,
                     datasets: [{
-                        label: 'Sales (ETH)',
+                        label: 'Revenue (ETH)',
                         data: salesByMonth,
-                        borderColor: '#4f46e5',
-                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                        tension: 0.4,
-                        fill: true
+                        backgroundColor: '#4f46e5',
+                        borderRadius: 4
                     }]
                 },
                 options: {
@@ -152,23 +135,27 @@ async function loadDashboardData() {
             });
         }
 
-        // Update Category Chart
-        const categoryCtx = document.getElementById('categoryChart');
-        if (categoryCtx) {
-            if (categoryChartInstance) categoryChartInstance.destroy();
+        // Update Top Products Chart (Horizontal Bar)
+        const topProductsCtx = document.getElementById('topProductsChart');
+        if (topProductsCtx) {
+            if (categoryChartInstance) categoryChartInstance.destroy(); // Reuse var name or rename
 
-            categoryChartInstance = new Chart(categoryCtx, {
-                type: 'doughnut',
+            categoryChartInstance = new Chart(topProductsCtx, {
+                type: 'bar',
+                indexAxis: 'y', // Horizontal
                 data: {
-                    labels: ['Electronics', 'Clothing', 'Books', 'Home', 'Sports', 'Other'],
+                    labels: topProductLabels,
                     datasets: [{
-                        data: salesByCategory,
-                        backgroundColor: ['#4f46e5', '#ec4899', '#10b981', '#f59e0b', '#3b82f6', '#6b7280']
+                        label: 'Units Sold',
+                        data: topProductData,
+                        backgroundColor: ['#4f46e5', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'],
+                        borderRadius: 4
                     }]
                 },
                 options: {
                     responsive: true,
-                    plugins: { legend: { position: 'bottom' } }
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
                 }
             });
         }
@@ -566,70 +553,73 @@ async function toggleProduct(productId) {
 // ==================== ORDERS MANAGEMENT ====================
 
 async function loadPendingOrders() {
-    if (!checkConnection()) return;
+    const ordersList = document.getElementById('pendingOrdersTableBody');
+    if (!ordersList) return;
 
     try {
-        showLoading('Loading pending orders...');
-
         const totalOrders = await contract.methods.orderCounter().call();
-        const orders = [];
+        let hasOrders = false;
+        ordersList.innerHTML = '';
 
         for (let i = 1; i <= totalOrders; i++) {
             const order = await contract.methods.orders(i).call();
 
-            // Only show pending orders for this seller
-            if (order.seller.toLowerCase() === currentAccount.toLowerCase() &&
-                order.status === '0') {
+            // Show orders that are NOT Completed and NOT Refunded (so Pending, Shipped, Disputed)
+            if (order.seller.toLowerCase() === currentAccount.toLowerCase() && 
+                (order.status === '0' || order.status === '1' || order.status === '5')) { 
+                
+                hasOrders = true;
                 const product = await contract.methods.products(order.productId).call();
-                orders.push({ orderId: i, order, product });
+                const status = getOrderStatus(order.status);
+                const statusClass = getStatusClass(order.status);
+                const date = new Date(parseInt(order.createdAt) * 1000).toLocaleDateString();
+                const sellerEth = web3.utils.fromWei(order.sellerAmount, 'ether');
+
+                let actionBtn = '';
+                if (order.status === '0') { // Pending
+                    actionBtn = `<button class="btn btn-small btn-primary" onclick="shipOrder(${order.id})">
+                                    <i class="fas fa-shipping-fast"></i> Ship
+                                 </button>`;
+                } else if (order.status === '1') { // Shipped
+                    actionBtn = `<span class="text-muted"><i class="fas fa-clock"></i> Awaiting Delivery</span>`;
+                } else if (order.status === '5') { // Disputed
+                    actionBtn = `<button class="btn btn-small btn-danger" onclick="viewDispute(${order.id})">
+                                    <i class="fas fa-exclamation-triangle"></i> View Dispute
+                                 </button>`;
+                }
+
+                const row = `
+                    <tr>
+                        <td>#${order.id}</td>
+                        <td>
+                            <div style="display: flex; align-items: center;">
+                                <img src="${getProductImage(product.imageHash)}" 
+                                     alt="${product.name}" 
+                                     class="order-product-image"
+                                     onerror="this.onerror=null; this.src='images/product-placeholder.png'">
+                                <span style="font-weight: 600;">${product.name}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span title="${order.buyer}">${order.buyer.substring(0, 6)}...${order.buyer.substring(38)}</span>
+                        </td>
+                        <td>${order.quantity}</td>
+                        <td>${sellerEth} ETH</td>
+                        <td>${date}</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                        <td>${actionBtn}</td>
+                    </tr>
+                `;
+                ordersList.innerHTML += row;
             }
         }
 
-        hideLoading();
-
-        const ordersList = document.getElementById('pendingOrdersList');
-
-        if (orders.length === 0) {
-            ordersList.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-clipboard-check"></i>
-                    <p>No pending orders</p>
-                </div>
-            `;
-            return;
+        if (!hasOrders) {
+            ordersList.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 2rem;">No pending orders found.</td></tr>`;
         }
-
-        ordersList.innerHTML = orders.map(({ orderId, order, product }) => `
-            <div class="order-card">
-                <div class="order-header">
-                    <span class="order-id">Order #${orderId}</span>
-                    <span class="order-status status-pending">Pending</span>
-                </div>
-                <div class="order-product">
-                    <img src="${getProductImage(product.imageHash)}" 
-                         alt="${product.name}" 
-                         class="order-product-image"
-                         onerror="this.onerror=null; this.src='images/product-placeholder.png'">
-                    <div style="flex: 1;">
-                        <h4>${product.name}</h4>
-                        <p>Quantity: ${order.quantity}</p>
-                        <p style="color: var(--primary); font-weight: 600;">
-                            Your Earning: ${formatEth(order.sellerAmount)} ETH
-                        </p>
-                    </div>
-                </div>
-                <div class="order-actions">
-                    <button class="btn btn-success" onclick="markAsShipped(${orderId})">
-                        <i class="fas fa-shipping-fast"></i> Mark as Shipped
-                    </button>
-                </div>
-            </div>
-        `).join('');
-
     } catch (error) {
-        console.error('Error loading pending orders:', error);
-        hideLoading();
-        showToast('Failed to load orders', 'error');
+        console.error("Error loading pending orders:", error);
+        ordersList.innerHTML = `<tr><td colspan="8" class="text-center text-danger">Error loading orders.</td></tr>`;
     }
 }
 

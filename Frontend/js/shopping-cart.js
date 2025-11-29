@@ -300,10 +300,7 @@ function saveCart() {
     localStorage.setItem(key, JSON.stringify(cart));
 }
 
-/**
- * Checkout cart - purchase all items sequentially
- * (Since batch purchase was removed from contract)
- */
+
 async function checkoutCart() {
     if (!checkConnection()) return;
     if (cart.length === 0) {
@@ -330,35 +327,14 @@ async function checkoutCart() {
                 throw new Error(`You cannot buy your own product "${product.name}". Please switch to a different account.`);
             }
 
-            const totalCost = BigInt(product.price) * BigInt(item.quantity);
+            // Call purchaseProduct (which handles VIP discounts)
+            // We pass the product object (from contract call) and quantity
+            // Note: product object from contract has string values, purchaseProduct expects that.
+            const success = await purchaseProduct(product, item.quantity);
             
-            showLoading(`Purchasing item ${i + 1} of ${cart.length}: ${product.name}...`);
-            
-            // Simulate transaction first to get revert reason if any
-            try {
-                await contract.methods.purchaseProduct(item.productId, item.quantity)
-                    .call({
-                        from: currentAccount,
-                        value: totalCost.toString()
-                    });
-            } catch (simError) {
-                console.error("Simulation failed:", simError);
-                // Extract reason if possible
-                let reason = simError.message;
-                if (simError.data && simError.data.message) {
-                    reason = simError.data.message;
-                } else if (simError.reason) {
-                    reason = simError.reason;
-                }
-                throw new Error(`Transaction check failed: ${reason}`);
+            if (!success) {
+                throw new Error(`Failed to purchase "${product.name}"`);
             }
-
-            await contract.methods.purchaseProduct(item.productId, item.quantity)
-                .send({
-                    from: currentAccount,
-                    value: totalCost.toString(),
-                    gas: 3000000 // High gas limit to prevent out-of-gas errors
-                });
         }
         
         hideLoading();

@@ -194,8 +194,28 @@
                 </button>
             </div>
             <div class="modal-body">
-                <div id="ordersList">
-                    <!-- Orders will be displayed here -->
+                <div class="table-responsive">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Product</th>
+                                <th>Seller</th>
+                                <th>Qty</th>
+                                <th>Total (ETH)</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading orders...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
                 
                 <!-- Transaction Tracker (Hidden by default, shown when viewing specific order) -->
