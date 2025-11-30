@@ -209,7 +209,7 @@ function displayProducts(products) {
     .map(
       (product) => `
         <div class="product-card" onclick="openProductDetails(${product.id})">
-            <img src="${getProductImage(product.imageHash)}" 
+            <img src="${getProductImage(product.imageHash, product.name)}" 
                  alt="${product.name}" 
                  class="product-image"
                  onerror="this.onerror=null; this.src='images/product-placeholder.png'">
@@ -227,9 +227,7 @@ function displayProducts(products) {
                 </div>
                 <div class="product-meta">
                     <div>
-                        <span class="product-price">${formatEth(
-                          product.price
-                        )} ETH</span>
+                        <span class="product-price">${formatEth(product.price)} ETH <small style="font-size: 0.8em; color: var(--text-muted);">${formatUSD(formatEth(product.price))}</small></span>
                         <p class="product-stock">
                             <i class="fas fa-box"></i> ${product.stock} in stock
                         </p>
@@ -306,17 +304,18 @@ async function openProductDetails(productId) {
 
     // Populate modal
     document.getElementById("modalProductName").textContent = product.name;
-    document.getElementById("modalProductImage").src = getProductImage(
-      product.imageHash
-    );
+    const image = document.getElementById("modalProductImage");
+    image.src = getProductImage(product.imageHash, product.name);
+    image.onerror = function () {
+        this.src = "images/product-placeholder.png";
+    };
     document.getElementById("modalProductDescription").textContent =
       product.description;
     document.getElementById("modalProductCategory").textContent =
       getCategoryName(product.category);
     document.getElementById("modalProductStock").textContent = product.stock;
-    document.getElementById("modalProductPrice").textContent = `${formatEth(
-      product.price
-    )} ETH`;
+    const priceEth = formatEth(product.price);
+    document.getElementById("modalProductPrice").innerHTML = `${priceEth} ETH <small style="font-size: 0.6em; color: var(--text-muted); display: block;">${formatUSD(priceEth)}</small>`;
     document.getElementById(
       "modalProductSeller"
     ).textContent = `${product.seller.substring(
@@ -511,12 +510,20 @@ async function openOrders() {
     
     if (!tableBody) return; // Safety check
 
+    // Add modern classes dynamically
+    const table = tableBody.closest('table');
+    if (table) table.classList.add('modern-table');
+    const wrapper = table.parentElement;
+    if (wrapper && !wrapper.classList.contains('table-responsive')) {
+        wrapper.classList.add('table-responsive');
+    }
+
     if (orderIds.length === 0) {
       tableBody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="text-center" style="padding: 2rem;">
+                    <td colspan="8" class="text-center" style="padding: 3rem; color: var(--text-muted);">
                         <div class="empty-state">
-                            <i class="fas fa-receipt"></i>
+                            <i class="fas fa-receipt" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
                             <p>You haven't made any orders yet</p>
                         </div>
                     </td>
@@ -531,21 +538,22 @@ async function openOrders() {
         const order = await contract.methods.orders(orderId).call();
         const product = await contract.methods.products(order.productId).call();
         
-        const statusClass = getStatusClass(order.status);
+        const statusClass = getStatusClass(order.status).toLowerCase();
         const statusText = getOrderStatus(order.status);
         const date = formatDate(order.createdAt);
         const totalEth = formatEth(order.totalPrice);
+        const totalUsd = formatUSD(totalEth);
 
         // Actions
         let actions = `
-            <button class="btn btn-secondary btn-small track-order-btn" onclick="showTransactionTracker(${orderId}, '${order.status}')" title="Track Order">
+            <button class="btn-icon" onclick="showTransactionTracker(${orderId}, '${order.status}')" title="Track Order">
                 <i class="fas fa-map-marker-alt"></i>
             </button>
         `;
 
         if (order.status === "1") { // Shipped
             actions += `
-                <button class="btn btn-success btn-small" onclick="confirmDelivery(${orderId})" title="Confirm Delivery">
+                <button class="btn-icon" style="color: var(--success); border-color: var(--success);" onclick="confirmDelivery(${orderId})" title="Confirm Delivery">
                     <i class="fas fa-check"></i>
                 </button>
             `;
@@ -553,7 +561,7 @@ async function openOrders() {
 
         if ((order.status === "0" || order.status === "1") && !order.disputed) {
             actions += `
-                <button class="btn btn-warning btn-small" onclick="raiseDispute(${orderId})" title="Raise Dispute">
+                <button class="btn-icon" style="color: var(--warning); border-color: var(--warning);" onclick="raiseDispute(${orderId})" title="Raise Dispute">
                     <i class="fas fa-exclamation-triangle"></i>
                 </button>
             `;
@@ -561,24 +569,32 @@ async function openOrders() {
 
         const row = `
             <tr>
-                <td>#${orderId}</td>
+                <td><strong>#${orderId}</strong></td>
                 <td>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${getProductImage(product.imageHash)}" 
+                    <div class="product-cell">
+                        <img src="${getProductImage(product.imageHash, product.name)}" 
                              alt="${product.name}" 
-                             class="order-product-image"
-                             style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;"
                              onerror="this.onerror=null; this.src='images/product-placeholder.png'">
-                        <span style="font-weight: 600;">${product.name}</span>
+                        <div class="product-cell-info">
+                            <span class="product-name">${product.name}</span>
+                            <span class="product-sub">Qty: ${order.quantity}</span>
+                        </div>
                     </div>
                 </td>
-                <td>${product.seller.substring(0, 6)}...</td>
-                <td>${order.quantity}</td>
-                <td>${totalEth} ETH</td>
-                <td>${date}</td>
-                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                 <td>
-                    <div style="display: flex; gap: 5px;">
+                    <span class="address-pill" title="${product.seller}" onclick="navigator.clipboard.writeText('${product.seller}'); showToast('Seller address copied', 'info')">
+                        ${product.seller.substring(0, 6)}...${product.seller.substring(38)}
+                    </span>
+                </td>
+                <td>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-weight: 600;">${totalEth} ETH</span>
+                        <small style="color: var(--text-muted); font-size: 0.8em;">${totalUsd}</small>
+                    </div>
+                </td>
+                <td><span class="status-badge ${statusClass}"><i class="fas fa-circle" style="font-size: 6px;"></i> ${statusText}</span></td>
+                <td>
+                    <div class="action-btn-group">
                         ${actions}
                     </div>
                 </td>

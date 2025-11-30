@@ -131,10 +131,10 @@ async function loadCartDetails() {
             
             html += `
                 <div class="cart-item">
-                    <img src="${getProductImage(product.imageHash)}" alt="${product.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 15px;" onerror="this.src='images/product-placeholder.png'">
+                    <img src="${getProductImage(product.imageHash, product.name)}" alt="${product.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 15px;" onerror="this.src='images/product-placeholder.png'">
                     <div class="cart-item-info">
                         <h4>${product.name}</h4>
-                        <p class="price">${formatEth(product.price)} ETH each</p>
+                        <p class="price">${formatEth(product.price)} ETH <small>${formatUSD(formatEth(product.price))}</small> each</p>
                     </div>
                     <div class="cart-item-quantity">
                         <button onclick="updateCartQuantity(${item.productId}, ${item.quantity - 1})">-</button>
@@ -142,7 +142,7 @@ async function loadCartDetails() {
                         <button onclick="updateCartQuantity(${item.productId}, ${item.quantity + 1})">+</button>
                     </div>
                     <div class="cart-item-total">
-                        ${productTotalEth.toFixed(4)} ETH
+                        ${productTotalEth.toFixed(4)} ETH<br><small style="font-size: 0.8em; color: var(--text-muted);">${formatUSD(productTotalEth)}</small>
                     </div>
                     <button class="btn-remove" onclick="removeFromCart(${item.productId})">
                         <i class="fas fa-trash"></i>
@@ -170,7 +170,7 @@ async function loadCartDetails() {
         const subtotalElement = document.getElementById('cartSubtotal');
         const feeElement = document.getElementById('cartFee');
         
-        if (subtotalElement) subtotalElement.textContent = `${totalEth.toFixed(4)} ETH`;
+        if (subtotalElement) subtotalElement.innerHTML = `${totalEth.toFixed(4)} ETH <small>${formatUSD(totalEth)}</small>`;
         if (feeElement) feeElement.textContent = 'Included'; 
         
         // Inject Discount Row if applicable
@@ -188,7 +188,7 @@ async function loadCartDetails() {
             discountRow.style.marginBottom = '10px';
             discountRow.innerHTML = `
                 <span>VIP Discount:</span>
-                <span>-${discountEth.toFixed(4)} ETH</span>
+                <span>-${discountEth.toFixed(4)} ETH <small>${formatUSD(discountEth)}</small></span>
             `;
             // Insert before total (which is usually the last element or close to it)
             // We need to find where to insert. 
@@ -199,7 +199,7 @@ async function loadCartDetails() {
             }
         }
         
-        cartTotalElement.textContent = `${finalEth.toFixed(4)} ETH`;
+        cartTotalElement.innerHTML = `${finalEth.toFixed(4)} ETH <br><small style="font-size: 0.6em; color: var(--text-muted); font-weight: normal;">${formatUSD(finalEth)}</small>`;
         
         if (checkoutBtn) checkoutBtn.disabled = false;
         

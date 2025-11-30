@@ -252,27 +252,68 @@ async function getCurrentAccount() {
 }
 
 /**
- * Show toast notification
+ * Initialize Toast Container
  */
-function showToast(message, type = 'success') {
-    const toast = document.getElementById('toast');
-    const toastMessage = document.getElementById('toastMessage');
+function initToastContainer() {
+    if (!document.querySelector('.toast-container')) {
+        const container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+}
 
-    if (!toast || !toastMessage) return;
-
-    toastMessage.textContent = message;
-    const icon = toast.querySelector('i');
-
-    if (type === 'error') {
-        if (icon) icon.className = 'fas fa-exclamation-circle';
-        toast.classList.add('error');
-    } else {
-        if (icon) icon.className = 'fas fa-check-circle';
-        toast.classList.remove('error');
+/**
+ * Show Toast Notification (Enhanced)
+ * @param {string} message - The message to display
+ * @param {string} type - 'success', 'error', 'info', 'warning'
+ * @param {string} title - Optional title
+ */
+function showToast(message, type = 'info', title = '') {
+    initToastContainer();
+    const container = document.querySelector('.toast-container');
+    
+    // Icons mapping
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        info: 'fa-info-circle',
+        warning: 'fa-exclamation-triangle'
+    };
+    
+    // Default titles if not provided
+    if (!title) {
+        title = type.charAt(0).toUpperCase() + type.slice(1);
     }
 
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 4000);
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <div class="toast-icon">
+            <i class="fas ${icons[type] || 'fa-info-circle'}"></i>
+        </div>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    container.appendChild(toast);
+
+    // Trigger animation
+    requestAnimationFrame(() => {
+        toast.classList.add('show');
+    });
+
+    // Auto remove
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            if (toast.parentElement) toast.remove();
+        }, 300);
+    }, 4000);
 }
 
 /**
@@ -309,6 +350,43 @@ function formatEth(weiValue) {
 function toWei(ethValue) {
     if (!web3) return '0';
     return web3.utils.toWei(ethValue.toString(), 'ether');
+}
+
+let currentEthPrice = 3500; // Default fallback
+let lastPriceFetchTime = 0;
+
+async function fetchEthPrice() {
+    const now = Date.now();
+    // Cache for 5 minutes (300000 ms)
+    if (now - lastPriceFetchTime < 300000 && currentEthPrice !== 3500) {
+        return currentEthPrice;
+    }
+
+    try {
+        console.log('Fetching real-time ETH price...');
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd&x_cg_demo_api_key=CG-So2TRpm7vy61pAPbPTN3q1MT');
+        const data = await response.json();
+        
+        if (data.ethereum && data.ethereum.usd) {
+            currentEthPrice = data.ethereum.usd;
+            lastPriceFetchTime = now;
+            console.log(`ETH Price updated: $${currentEthPrice}`);
+        }
+    } catch (error) {
+        console.error('Error fetching ETH price:', error);
+    }
+    return currentEthPrice;
+}
+
+// Call on init
+fetchEthPrice();
+
+/**
+ * Format USD value (Dynamic)
+ */
+function formatUSD(ethAmount) {
+    const usdValue = parseFloat(ethAmount) * currentEthPrice;
+    return `($${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
 }
 
 /**
@@ -381,7 +459,17 @@ function checkConnection() {
 /**
  * Get product image
  */
-function getProductImage(imageHash) {
+function getProductImage(imageHash, productName = '') {
+    // Check for specific product names to use our generated high-quality images
+    if (productName) {
+        const lowerName = productName.toLowerCase();
+        if (lowerName.includes('watch')) return 'images/smart-watch.png';
+        if (lowerName.includes('laptop') || lowerName.includes('macbook')) return 'images/laptop.png';
+        if (lowerName.includes('headphone') || lowerName.includes('earphone') || lowerName.includes('audio')) return 'images/headphones.png';
+        if (lowerName.includes('phone') || lowerName.includes('iphone')) return 'images/product-placeholder.png'; // Fallback for now
+        if (lowerName.includes('shirt') || lowerName.includes('cloth')) return 'images/product-placeholder.png'; // Fallback for now
+    }
+
     if (!imageHash) return 'images/product-placeholder.png';
     if (imageHash.startsWith('http')) return imageHash;
     // Handle fake hashes from sample data

@@ -351,7 +351,7 @@ async function loadSellerProducts() {
                 <tr>
                     <td><strong>#${product.id}</strong></td>
                     <td>
-                        <img src="${getProductImage(product.imageHash)}" 
+                        <img src="${getProductImage(product.imageHash, product.name)}" 
                              alt="${product.name}" 
                              class="product-table-image"
                              onerror="this.onerror=null; this.src='images/product-placeholder.png'">
@@ -561,6 +561,20 @@ async function loadPendingOrders() {
         let hasOrders = false;
         ordersList.innerHTML = '';
 
+        // We need to wrap the table in .table-responsive and add .modern-table class
+        // But since we are only updating the body, we assume the parent table has the class or we should update the parent HTML too.
+        // For now, let's just update the rows to be compatible with the new CSS.
+        // Actually, the user asked to make it "more appealing", so I should probably update the table structure itself if possible.
+        // But I can only edit the function. I'll make the rows look good.
+        
+        // Wait, I can't change the table class from here unless I select the parent.
+        const table = ordersList.closest('table');
+        if (table) table.classList.add('modern-table');
+        const wrapper = table.parentElement;
+        if (wrapper && !wrapper.classList.contains('table-responsive')) {
+            wrapper.classList.add('table-responsive');
+        }
+
         for (let i = 1; i <= totalOrders; i++) {
             const order = await contract.methods.orders(i).call();
 
@@ -571,9 +585,10 @@ async function loadPendingOrders() {
                 hasOrders = true;
                 const product = await contract.methods.products(order.productId).call();
                 const status = getOrderStatus(order.status);
-                const statusClass = getStatusClass(order.status);
+                const statusClass = getStatusClass(order.status); // e.g., 'pending', 'shipped'
                 const date = new Date(parseInt(order.createdAt) * 1000).toLocaleDateString();
                 const sellerEth = web3.utils.fromWei(order.sellerAmount, 'ether');
+                const sellerUsd = formatUSD(sellerEth);
 
                 let actionBtn = '';
                 if (order.status === '0') { // Pending
@@ -590,23 +605,30 @@ async function loadPendingOrders() {
 
                 const row = `
                     <tr>
-                        <td>#${order.id}</td>
+                        <td><strong>#${order.id}</strong></td>
                         <td>
-                            <div style="display: flex; align-items: center;">
-                                <img src="${getProductImage(product.imageHash)}" 
+                            <div class="product-cell">
+                                <img src="${getProductImage(product.imageHash, product.name)}" 
                                      alt="${product.name}" 
-                                     class="order-product-image"
                                      onerror="this.onerror=null; this.src='images/product-placeholder.png'">
-                                <span style="font-weight: 600;">${product.name}</span>
+                                <div class="product-cell-info">
+                                    <span class="product-name">${product.name}</span>
+                                    <span class="product-sub">Qty: ${order.quantity}</span>
+                                </div>
                             </div>
                         </td>
                         <td>
-                            <span title="${order.buyer}">${order.buyer.substring(0, 6)}...${order.buyer.substring(38)}</span>
+                            <span class="address-pill" title="${order.buyer}" onclick="navigator.clipboard.writeText('${order.buyer}'); showToast('Address copied', 'info')">
+                                ${order.buyer.substring(0, 6)}...${order.buyer.substring(38)}
+                            </span>
                         </td>
-                        <td>${order.quantity}</td>
-                        <td>${sellerEth} ETH</td>
-                        <td>${date}</td>
-                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                        <td>
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-weight: 600;">${sellerEth} ETH</span>
+                                <small style="color: var(--text-muted); font-size: 0.8em;">${sellerUsd}</small>
+                            </div>
+                        </td>
+                        <td><span class="status-badge ${statusClass.toLowerCase()}"><i class="fas fa-circle" style="font-size: 6px;"></i> ${status}</span></td>
                         <td>${actionBtn}</td>
                     </tr>
                 `;
@@ -615,7 +637,10 @@ async function loadPendingOrders() {
         }
 
         if (!hasOrders) {
-            ordersList.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 2rem;">No pending orders found.</td></tr>`;
+            ordersList.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 3rem; color: var(--text-muted);">
+                <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i><br>
+                No pending orders found.
+            </td></tr>`;
         }
     } catch (error) {
         console.error("Error loading pending orders:", error);
