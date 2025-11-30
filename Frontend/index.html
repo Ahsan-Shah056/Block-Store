@@ -326,10 +326,29 @@
     <div class="modal" id="dashboardModal">
         <div class="modal-content dashboard-modal">
             <div class="modal-header">
-                <h2><i class="fas fa-user-astronaut"></i> User Dashboard</h2>
+                <div class="header-title">
+                    <h2><i class="fas fa-user-astronaut"></i> User Dashboard</h2>
+                    <span id="networkBadge" class="network-badge">Loading...</span>
+                </div>
                 <button class="close-modal" onclick="closeDashboard()">&times;</button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body dashboard-grid-layout">
+                <!-- Wallet Card (New) -->
+                <div class="dashboard-card wallet-card">
+                    <div class="card-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="card-info">
+                        <h3>Wallet Address</h3>
+                        <div class="wallet-address-box">
+                            <span id="dashWalletAddress">0x...</span>
+                            <button class="btn-icon-small" onclick="copyDashAddress()" title="Copy Address">
+                                <i class="far fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- VIP Status Card -->
                 <div class="dashboard-card vip-card">
                     <div class="card-icon" id="dashVipIcon">
@@ -350,12 +369,14 @@
                     <div class="card-info">
                         <h3>Token Balance</h3>
                         <span id="dashTokenBalance" class="balance-text">0.00 BMT</span>
-                        <button id="mintTokensBtn" class="btn btn-sm btn-outline">
-                            <i class="fas fa-faucet"></i> Mint Test Tokens
-                        </button>
-                        <button id="createTestOrderBtn" class="btn btn-sm btn-outline" style="margin-top: 0.5rem;">
-                            <i class="fas fa-shopping-bag"></i> Create Test Order
-                        </button>
+                        <div class="token-actions">
+                            <button id="mintTokensBtn" class="btn btn-sm btn-glass">
+                                <i class="fas fa-faucet"></i> Mint
+                            </button>
+                            <button id="createTestOrderBtn" class="btn btn-sm btn-glass">
+                                <i class="fas fa-shopping-bag"></i> Test Order
+                            </button>
+                        </div>
                     </div>
                 </div>
 

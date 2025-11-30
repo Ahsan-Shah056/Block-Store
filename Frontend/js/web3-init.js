@@ -466,8 +466,12 @@ function getProductImage(imageHash, productName = '') {
         if (lowerName.includes('watch')) return 'images/smart-watch.png';
         if (lowerName.includes('laptop') || lowerName.includes('macbook')) return 'images/laptop.png';
         if (lowerName.includes('headphone') || lowerName.includes('earphone') || lowerName.includes('audio')) return 'images/headphones.png';
-        if (lowerName.includes('phone') || lowerName.includes('iphone')) return 'images/product-placeholder.png'; // Fallback for now
-        if (lowerName.includes('shirt') || lowerName.includes('cloth')) return 'images/product-placeholder.png'; // Fallback for now
+        
+        
+        if (lowerName.includes('phone') || lowerName.includes('iphone')) return 'images/product-placeholder.png';
+        if (lowerName.includes('shirt') || lowerName.includes('cloth') || lowerName.includes('dress')) return 'images/product-placeholder.png';
+        if (lowerName.includes('mouse') || lowerName.includes('gaming')) return 'images/product-placeholder.png';
+        if (lowerName.includes('camera') || lowerName.includes('webcam')) return 'images/product-placeholder.png';
     }
 
     if (!imageHash) return 'images/product-placeholder.png';

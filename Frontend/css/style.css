@@ -1890,3 +1890,173 @@ body {
     color: var(--primary);
     transform: translateY(-2px);
 }
+
+/* ==================== IMPROVED DASHBOARD ==================== */
+.dashboard-modal {
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    max-width: 800px;
+    width: 90%;
+}
+
+.dashboard-grid-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem 0;
+}
+
+.dashboard-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Card Gradients */
+.wallet-card {
+    background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+    color: white;
+    border: none;
+}
+
+.vip-card {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border: none;
+}
+
+.vip-card.bronze { background: linear-gradient(135deg, #78350f 0%, #92400e 100%); }
+.vip-card.silver { background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); }
+.vip-card.gold { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); }
+
+.token-card {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    color: white;
+    border: none;
+}
+
+.staking-card {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+}
+
+/* Card Icons */
+.dashboard-card .card-icon {
+    background: rgba(255, 255, 255, 0.2);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.dashboard-card h3 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.9;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-card .card-info {
+    flex-grow: 1;
+}
+
+/* Wallet Address Box */
+.wallet-address-box {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+.btn-icon-small {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    padding: 0.2rem;
+    transition: color 0.2s;
+}
+
+.btn-icon-small:hover {
+    color: white;
+}
+
+/* Network Badge */
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.network-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border: 1px solid var(--success);
+    font-weight: 600;
+}
+
+/* Glass Buttons */
+.btn-glass {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    backdrop-filter: blur(4px);
+}
+
+.btn-glass:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.token-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+/* Close Modal Button */
+.close-modal {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.close-modal:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}

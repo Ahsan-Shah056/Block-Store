@@ -8,7 +8,8 @@ let dashboardData = {
     vipTier: 0,
     tokenBalance: '0',
     stakedAmount: '0',
-    isSeller: false
+    isSeller: false,
+    networkName: 'Unknown'
 };
 
 const VIP_TIERS = ['None', 'Bronze', 'Silver', 'Gold'];
@@ -42,6 +43,13 @@ async function initDashboard() {
  */
 async function loadDashboardData() {
     try {
+        // Get Network
+        const chainId = await web3.eth.getChainId();
+        if (chainId === 1337 || chainId === 5777) dashboardData.networkName = 'Ganache (Local)';
+        else if (chainId === 1) dashboardData.networkName = 'Ethereum Mainnet';
+        else if (chainId === 11155111) dashboardData.networkName = 'Sepolia Testnet';
+        else dashboardData.networkName = `Chain ID: ${chainId}`;
+
         // Get VIP Tier
         const tier = await contract.methods.getVIPTier(currentAccount).call();
         dashboardData.vipTier = parseInt(tier);
@@ -70,14 +78,30 @@ async function loadDashboardData() {
  * Update Dashboard UI
  */
 function updateDashboardUI() {
+    // Update Network Badge
+    const netBadge = document.getElementById('networkBadge');
+    if (netBadge) netBadge.textContent = dashboardData.networkName;
+
+    // Update Wallet Address
+    const walletAddr = document.getElementById('dashWalletAddress');
+    if (walletAddr) {
+        walletAddr.textContent = `${currentAccount.substring(0, 10)}...${currentAccount.substring(38)}`;
+    }
+
     // Update VIP Card
     const vipTierEl = document.getElementById('dashVipTier');
     const vipDiscountEl = document.getElementById('dashVipDiscount');
-    const vipIconEl = document.getElementById('dashVipIcon');
+    const vipCard = document.querySelector('.vip-card');
     
     if (vipTierEl) {
-        vipTierEl.textContent = VIP_TIERS[dashboardData.vipTier];
-        vipTierEl.className = `vip-badge vip-${VIP_TIERS[dashboardData.vipTier].toLowerCase()}`;
+        const tierName = VIP_TIERS[dashboardData.vipTier];
+        vipTierEl.textContent = tierName;
+        vipTierEl.className = `vip-badge vip-${tierName.toLowerCase()}`;
+        
+        // Update card gradient based on tier
+        if (vipCard) {
+            vipCard.className = `dashboard-card vip-card ${tierName.toLowerCase()}`;
+        }
     }
     
     if (vipDiscountEl) vipDiscountEl.textContent = VIP_DISCOUNTS[dashboardData.vipTier] + ' Discount';
@@ -90,12 +114,17 @@ function updateDashboardUI() {
     const stakingSection = document.getElementById('stakingSection');
     if (stakingSection) {
         if (dashboardData.isSeller) {
-            stakingSection.style.display = 'block';
+            stakingSection.style.display = 'flex'; // Changed to flex for card layout
             document.getElementById('dashStakedAmount').textContent = parseFloat(dashboardData.stakedAmount).toFixed(2) + ' BMT';
         } else {
             stakingSection.style.display = 'none';
         }
     }
+}
+
+function copyDashAddress() {
+    navigator.clipboard.writeText(currentAccount);
+    showToast('Address copied to clipboard', 'success');
 }
 
 /**
