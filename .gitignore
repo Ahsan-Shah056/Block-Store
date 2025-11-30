@@ -31,7 +31,7 @@ yarn-error.log*
 # Temporary files
 *.tmp
 .cache/
-
+README.pdf
 # Truffle
 .secret
 .mnemonic
