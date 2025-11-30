@@ -160,23 +160,22 @@
                         <h3><i class="fas fa-boxes"></i> Your Products</h3>
                     </div>
                     <div class="table-responsive">
-                        <table>
+                        <table class="modern-table">
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>Image</th>
-                                    <th>Product Name</th>
+                                    <th>Product</th>
                                     <th>Price (ETH)</th>
                                     <th>Stock</th>
                                     <th>Sales</th>
                                     <th>Rating</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody id="productsTableBody">
                                 <tr>
-                                    <td colspan="9" class="text-center">
+                                    <td colspan="8" class="text-center">
                                         <i class="fas fa-spinner fa-spin"></i> Loading products...
                                     </td>
                                 </tr>
@@ -191,12 +190,22 @@
                 <div class="orders-list">
                     <div class="table-header">
                         <h3><i class="fas fa-clipboard-list"></i> Pending Orders</h3>
+                        <div class="filter-group">
+                            <div class="select-wrapper">
+                                <select id="orderStatusFilter" class="status-filter-dropdown" onchange="filterOrders(this.value)">
+                                    <option value="all">All Statuses</option>
+                                    <option value="0">Pending</option>
+                                    <option value="1">Shipped</option>
+                                    <option value="5">Disputed</option>
+                                </select>
+                                <i class="fas fa-chevron-down select-arrow"></i>
+                            </div>
+                        </div>
                     </div>
                     <div class="table-responsive">
                         <table class="modern-table">
                             <thead>
                                 <tr>
-                                    <th>Order ID</th>
                                     <th>Order ID</th>
                                     <th>Product</th>
                                     <th>Buyer</th>
@@ -229,102 +238,88 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form id="productForm">
+                <form id="productForm" class="modern-form">
                     <input type="hidden" id="productId" value="">
 
-                    <div class="form-group">
-                        <label>Product Name *</label>
-                        <input type="text" id="productName" class="input-field" placeholder="e.g., iPhone 15 Pro"
-                            required>
-                    </div>
+                    <div class="form-grid">
+                        <!-- Left Column: Details -->
+                        <div class="form-column">
+                            <div class="form-group">
+                                <label>Product Name</label>
+                                <div class="input-wrapper">
+                                    <i class="fas fa-tag input-icon"></i>
+                                    <input type="text" id="productName" class="input-field pl-4" placeholder="e.g., iPhone 15 Pro" required>
+                                </div>
+                            </div>
 
-                    <div class="form-group">
-                        <label>Description *</label>
-                        <textarea id="productDescription" class="input-field" rows="3"
-                            placeholder="Describe your product..." required></textarea>
-                    </div>
+                            <div class="form-group">
+                                <label>Category</label>
+                                <div class="input-wrapper">
+                                    <i class="fas fa-list input-icon"></i>
+                                    <select id="productCategory" class="input-field pl-4" required>
+                                        <option value="0">Electronics</option>
+                                        <option value="1">Clothing</option>
+                                        <option value="2">Books</option>
+                                        <option value="3">Home & Garden</option>
+                                        <option value="4">Other</option>
+                                    </select>
+                                </div>
+                            </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Category *</label>
-                            <select id="productCategory" class="input-field" required>
-                                <option value="0">Electronics</option>
-                                <option value="1">Clothing</option>
-                                <option value="2">Books</option>
-                                <option value="3">Home</option>
-                                <option value="4">Sports</option>
-                                <option value="5">Other</option>
-                            </select>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Price (ETH)</label>
+                                    <div class="input-wrapper">
+                                        <i class="fab fa-ethereum input-icon"></i>
+                                        <input type="number" id="productPrice" class="input-field pl-4" step="0.0001" min="0" placeholder="0.00" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Stock</label>
+                                    <div class="input-wrapper">
+                                        <i class="fas fa-boxes input-icon"></i>
+                                        <input type="number" id="productStock" class="input-field pl-4" min="1" placeholder="1" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea id="productDescription" class="input-field" rows="4" placeholder="Describe your product..." required></textarea>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Price (ETH) *</label>
-                            <input type="number" id="productPrice" class="input-field" step="0.001" min="0.001"
-                                placeholder="0.05" required>
+                        <!-- Right Column: Image -->
+                        <div class="form-column">
+                            <label>Product Image</label>
+                            <div class="image-upload-area" id="dropZone">
+                                <div class="image-preview-wrapper">
+                                    <img id="previewImg" src="images/product-placeholder.png" alt="Preview" onerror="this.src='images/product-placeholder.png'">
+                                    <div class="upload-overlay">
+                                        <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('imageFileInput').click()">
+                                            <i class="fas fa-camera"></i> Change
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="upload-actions">
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('imageFileInput').click()">
+                                        <i class="fas fa-upload"></i> Upload
+                                    </button>
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="toggleImageUrlInput()">
+                                        <i class="fas fa-link"></i> URL
+                                    </button>
+                                </div>
+
+                                <input type="file" id="imageFileInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                                <input type="hidden" id="productImage" required>
+                                
+                                <div id="imageUrlContainer" class="url-input-container" style="display: none;">
+                                    <input type="text" id="productImageUrl" class="input-field" placeholder="Paste Image URL">
+                                    <button type="button" class="btn-icon-only" onclick="previewImageUrl()"><i class="fas fa-check"></i></button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Stock Quantity *</label>
-                            <input type="number" id="productStock" class="input-field" min="1" placeholder="10"
-                                required>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Category *</label>
-                            <select id="productCategory" class="input-field" required>
-                                <option value="">Select Category</option>
-                                <option value="0">Electronics</option>
-                                <option value="1">Clothing</option>
-                                <option value="2">Books</option>
-                                <option value="3">Home</option>
-                                <option value="4">Sports</option>
-                                <option value="5">Other</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Product Image *</label>
-                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
-                            <button type="button" class="btn btn-secondary"
-                                onclick="document.getElementById('imageFileInput').click()" style="flex: 1;">
-                                <i class="fas fa-upload"></i> Upload Image
-                            </button>
-                            <span style="color: #666;">OR</span>
-                            <button type="button" class="btn btn-secondary" onclick="toggleImageUrlInput()"
-                                style="flex: 1;">
-                                <i class="fas fa-link"></i> Use Image URL
-                            </button>
-                        </div>
-
-                        <input type="file" id="imageFileInput" accept="image/*" style="display: none;"
-                            onchange="handleImageUpload(event)">
-
-                        <div id="imageUrlContainer" style="display: none; margin-top: 10px;">
-                            <input type="text" id="productImageUrl" class="input-field"
-                                placeholder="https://... or IPFS hash">
-                            <button type="button" class="btn btn-secondary" onclick="previewImageUrl()"
-                                style="margin-top: 5px;">
-                                <i class="fas fa-eye"></i> Preview URL
-                            </button>
-                        </div>
-
-                        <input type="hidden" id="productImage" required>
-
-                        <small style="color: #666; display: block; margin-top: 5px;">
-                            <i class="fas fa-info-circle"></i> Upload JPG, PNG, or GIF (max 2MB) or provide an image URL
-                        </small>
-                    </div>
-
-                    <div class="image-preview" id="imagePreview">
-                        <img id="previewImg" src="" alt="Preview"
-                            style="display: none; max-width: 100%; border-radius: 8px; margin-top: 10px;">
-                        <button type="button" class="btn btn-danger" id="removeImageBtn" onclick="removeImage()"
-                            style="display: none; margin-top: 10px;">
-                            <i class="fas fa-trash"></i> Remove Image
-                        </button>
                     </div>
                 </form>
             </div>

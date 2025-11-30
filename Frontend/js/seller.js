@@ -347,41 +347,49 @@ async function loadSellerProducts() {
             const product = await contract.methods.products(productId).call();
             sellerProducts.push(product);
 
+            const statusClass = product.isActive ? 'status-completed' : 'status-cancelled'; // Green for active, Red for inactive
+            const statusText = product.isActive ? 'Active' : 'Inactive';
+            const priceEth = web3.utils.fromWei(product.price, 'ether');
+
             rows.push(`
                 <tr>
                     <td><strong>#${product.id}</strong></td>
                     <td>
-                        <img src="${getProductImage(product.imageHash, product.name)}" 
-                             alt="${product.name}" 
-                             class="product-table-image"
-                             onerror="this.onerror=null; this.src='images/product-placeholder.png'">
+                        <div class="product-cell">
+                            <img src="${getProductImage(product.imageHash, product.name)}" 
+                                 alt="${product.name}" 
+                                 onerror="this.onerror=null; this.src='images/product-placeholder.png'">
+                            <div class="product-cell-info">
+                                <span class="product-name">${product.name}</span>
+                                <span class="product-sub">${product.category ? getCategoryName(product.category) : 'Product'}</span>
+                            </div>
+                        </div>
                     </td>
-                    <td><strong>${product.name}</strong></td>
-                    <td>${formatEth(product.price)}</td>
+                    <td><strong>${priceEth}</strong></td>
                     <td>${product.stock}</td>
                     <td>${product.totalSales}</td>
                     <td>
-                        <div class="stars" style="font-size: 0.85rem;">
+                        <div class="stars" style="font-size: 0.8rem;">
                             ${generateStarRating(product.rating)}
                         </div>
-                        <small>${(product.rating / 100).toFixed(1)} (${product.totalRatings})</small>
+                        <small style="color: var(--text-muted);">${(product.rating / 100).toFixed(1)} (${product.totalRatings})</small>
                     </td>
                     <td>
-                        <span class="badge badge-${product.isActive ? 'success' : 'danger'}">
-                            ${product.isActive ? 'Active' : 'Inactive'}
+                        <span class="status-badge ${statusClass}">
+                            <i class="fas fa-circle" style="font-size: 6px;"></i> ${statusText}
                         </span>
                     </td>
                     <td>
-                        <button class="btn btn-small btn-secondary" 
-                                onclick="editProduct(${product.id})"
-                                style="margin-bottom: 5px;">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
-                        <button class="btn btn-small ${product.isActive ? 'btn-danger' : 'btn-success'}" 
-                                onclick="toggleProduct(${product.id})">
-                            <i class="fas fa-${product.isActive ? 'eye-slash' : 'eye'}"></i>
-                            ${product.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
+                        <div class="action-buttons">
+                            <button class="btn-icon" onclick="editProduct(${product.id})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon ${product.isActive ? 'text-danger' : 'text-success'}" 
+                                    onclick="toggleProduct(${product.id})" 
+                                    title="${product.isActive ? 'Deactivate' : 'Activate'}">
+                                <i class="fas fa-${product.isActive ? 'ban' : 'check-circle'}"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `);
@@ -408,10 +416,9 @@ function openAddProductModal() {
     document.getElementById('productImage').value = '';
     document.getElementById('imageUrlContainer').style.display = 'none';
 
-    // Hide preview
-    document.getElementById('previewImg').style.display = 'none';
-    document.getElementById('removeImageBtn').style.display = 'none';
-
+    // Reset preview to placeholder
+    document.getElementById('previewImg').src = 'images/product-placeholder.png';
+    
     document.getElementById('productModal').classList.add('active');
 }
 
@@ -422,26 +429,20 @@ function editProduct(productId) {
     if (!product) return;
 
     document.getElementById('productModalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Product';
+    document.getElementById('productId').value = product.id;
     document.getElementById('productName').value = product.name;
     document.getElementById('productDescription').value = product.description;
     document.getElementById('productCategory').value = product.category;
     document.getElementById('productPrice').value = formatEth(product.price);
     document.getElementById('productStock').value = product.stock;
     document.getElementById('productImage').value = product.imageHash;
-
-    // Reset file input (can't edit uploaded files directly)
+    
+    // Reset file input
     document.getElementById('imageFileInput').value = '';
-
-    // If it's a URL, show in URL input
-    if (product.imageHash && !product.imageHash.startsWith('data:image')) {
-        document.getElementById('productImageUrl').value = product.imageHash;
-    }
-
+    
     // Show preview
     const preview = document.getElementById('previewImg');
-    preview.src = getProductImage(product.imageHash);
-    preview.style.display = 'block';
-    document.getElementById('removeImageBtn').style.display = 'block';
+    preview.src = getProductImage(product.imageHash, product.name);
 
     document.getElementById('productModal').classList.add('active');
 }
@@ -552,6 +553,15 @@ async function toggleProduct(productId) {
 
 // ==================== ORDERS MANAGEMENT ====================
 
+// ==================== ORDERS MANAGEMENT ====================
+
+let currentOrderFilter = 'all';
+
+function filterOrders(status) {
+    currentOrderFilter = status;
+    loadPendingOrders();
+}
+
 async function loadPendingOrders() {
     const ordersList = document.getElementById('pendingOrdersTableBody');
     if (!ordersList) return;
@@ -561,13 +571,7 @@ async function loadPendingOrders() {
         let hasOrders = false;
         ordersList.innerHTML = '';
 
-        // We need to wrap the table in .table-responsive and add .modern-table class
-        // But since we are only updating the body, we assume the parent table has the class or we should update the parent HTML too.
-        // For now, let's just update the rows to be compatible with the new CSS.
-        // Actually, the user asked to make it "more appealing", so I should probably update the table structure itself if possible.
-        // But I can only edit the function. I'll make the rows look good.
-        
-        // Wait, I can't change the table class from here unless I select the parent.
+        // Ensure table styling
         const table = ordersList.closest('table');
         if (table) table.classList.add('modern-table');
         const wrapper = table.parentElement;
@@ -578,15 +582,26 @@ async function loadPendingOrders() {
         for (let i = 1; i <= totalOrders; i++) {
             const order = await contract.methods.orders(i).call();
 
-            // Show orders that are NOT Completed and NOT Refunded (so Pending, Shipped, Disputed)
-            if (order.seller.toLowerCase() === currentAccount.toLowerCase() && 
-                (order.status === '0' || order.status === '1' || order.status === '5')) { 
+            // Filter logic:
+            // 1. Must be seller's order
+            // 2. Must match selected filter (or 'all')
+            // 3. Generally show Pending(0), Shipped(1), Disputed(5)
+            
+            const isSellerOrder = order.seller.toLowerCase() === currentAccount.toLowerCase();
+            const matchesFilter = currentOrderFilter === 'all' ? true : order.status === currentOrderFilter;
+            
+            // We want to show active orders. If filter is 'all', show 0, 1, 5.
+            // If filter is specific, show that status.
+            const isRelevantStatus = currentOrderFilter === 'all' 
+                ? (order.status === '0' || order.status === '1' || order.status === '5')
+                : (order.status === currentOrderFilter);
+
+            if (isSellerOrder && matchesFilter && isRelevantStatus) { 
                 
                 hasOrders = true;
                 const product = await contract.methods.products(order.productId).call();
                 const status = getOrderStatus(order.status);
-                const statusClass = getStatusClass(order.status); // e.g., 'pending', 'shipped'
-                const date = new Date(parseInt(order.createdAt) * 1000).toLocaleDateString();
+                const statusClass = getStatusClass(order.status);
                 const sellerEth = web3.utils.fromWei(order.sellerAmount, 'ether');
                 const sellerUsd = formatUSD(sellerEth);
 
@@ -639,13 +654,36 @@ async function loadPendingOrders() {
         if (!hasOrders) {
             ordersList.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 3rem; color: var(--text-muted);">
                 <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i><br>
-                No pending orders found.
+                No orders found for this filter.
             </td></tr>`;
         }
     } catch (error) {
         console.error("Error loading pending orders:", error);
         ordersList.innerHTML = `<tr><td colspan="8" class="text-center text-danger">Error loading orders.</td></tr>`;
     }
+}
+
+async function viewDispute(orderId) {
+    try {
+        const dispute = await contract.methods.disputes(orderId).call();
+        const order = await contract.methods.orders(orderId).call();
+        
+        document.getElementById('disputeOrderId').textContent = '#' + orderId;
+        document.getElementById('disputeBuyer').textContent = dispute.buyer;
+        document.getElementById('disputeReason').textContent = dispute.reason;
+        
+        const modal = document.getElementById('disputeModal');
+        if (modal) modal.classList.add('active');
+        
+    } catch (error) {
+        console.error("Error loading dispute:", error);
+        showToast("Failed to load dispute details", "error");
+    }
+}
+
+function closeDisputeModal() {
+    const modal = document.getElementById('disputeModal');
+    if (modal) modal.classList.remove('active');
 }
 
 async function shipOrder(orderId) {
